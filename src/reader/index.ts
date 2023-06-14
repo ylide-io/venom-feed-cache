@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { DataSource } from 'typeorm';
 import cors from 'cors';
-import { validateBanPost } from '../middlewares/validate';
+import { validateBanPost, validatePostsStatus } from '../middlewares/validate';
 import { postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 
@@ -69,6 +69,17 @@ export async function startReader(port: number, db: DataSource) {
 			console.error(e);
 			res.sendStatus(500);
 		}
+	});
+
+	app.get('/posts-status', validatePostsStatus, async (req, res) => {
+		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
+		const result = await postRepository
+			.createQueryBuilder()
+			.select('id')
+			.where(`id in (:...ids)`, { ids })
+			.andWhere('banned = true')
+			.getRawMany();
+		res.status(200).json({ bannedPosts: result.map(e => e.id) });
 	});
 
 	app.post('/ban-posts', validateBanPost, async (req, res) => {
