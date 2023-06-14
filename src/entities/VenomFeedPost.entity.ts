@@ -15,6 +15,9 @@ export class VenomFeedPostEntity {
 	@Column({ type: 'jsonb' })
 	meta!: any;
 
-	@Column({ type: 'jsonb' })
-	content!: any;
+	@Column({ type: 'jsonb', nullable: true, default: null })
+	content!: any | null;
+
+	@Column({ type: 'boolean', default: false, nullable: false })
+	banned!: boolean;
 }

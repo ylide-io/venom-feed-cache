@@ -83,11 +83,23 @@ export async function startParser() {
 				post.id = msg.msgId;
 				post.createTimestamp = msg.createdAt;
 				post.sender = msg.senderAddress;
-				post.meta = msg;
+				post.banned = false;
+				post.meta = {
+					...msg,
+					key: [...msg.key],
+				};
 
-				post.content = content;
+				if (!content || content.corrupted) {
+					post.content = content;
+				} else {
+					post.content = {
+						...content,
+						content: [...content.content],
+					};
+				}
 				await postRepository.save(post);
 				console.log(`Saved post #${i++}`);
+				lastPost = msg;
 			}
 		}
 	}

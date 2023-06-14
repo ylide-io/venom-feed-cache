@@ -2,6 +2,8 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { DataSource } from 'typeorm';
 import cors from 'cors';
+import { validateBanPost } from '../middlewares/validate';
+import { postRepository } from '../database';
 
 export async function startReader(port: number, db: DataSource) {
 	const app = express();
@@ -29,6 +31,18 @@ export async function startReader(port: number, db: DataSource) {
 		} catch {
 			return res.end('NO-PONG');
 		}
+	});
+
+	app.post('/ban-posts', validateBanPost, async (req, res) => {
+		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
+		await postRepository.update(ids, { banned: true });
+		res.sendStatus(201);
+	});
+
+	app.delete('/unban-posts', validateBanPost, async (req, res) => {
+		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
+		await postRepository.update(ids, { banned: false });
+		res.sendStatus(204);
 	});
 
 	app.listen(port, () => {
