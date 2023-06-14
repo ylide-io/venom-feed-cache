@@ -106,5 +106,5 @@ export async function startParser() {
 
 	await updateFeed(true);
 
-	debugger;
+	console.log('Parser done');
 }
