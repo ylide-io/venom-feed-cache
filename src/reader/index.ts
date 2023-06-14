@@ -59,9 +59,7 @@ export async function startReader(port: number, db: DataSource) {
 					? 0
 					: last200Posts.findIndex(p => p.createTimestamp < beforeTimestamp)
 				: -1;
-			console.log(`beforeTimestamp: ${beforeTimestamp}, withBanned: ${withBanned}, idx: ${idx}`);
 			if (!withBanned && idx <= 200 - 10) {
-				console.log('1: return last200Posts.slice(idx, idx + 10)', last200Posts.slice(idx, idx + 10));
 				return res.json(last200Posts.slice(idx, idx + 10));
 			}
 			const posts = await postRepository.find({
@@ -75,7 +73,6 @@ export async function startReader(port: number, db: DataSource) {
 				order: { createTimestamp: 'DESC' },
 				take: 10,
 			});
-			console.log('2: return posts', posts);
 			return res.json(posts);
 		} catch (e) {
 			console.error(e);
