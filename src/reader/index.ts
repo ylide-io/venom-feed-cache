@@ -54,13 +54,21 @@ export async function startReader(port: number, db: DataSource) {
 			const { beforeTimestamp: beforeTimestampRaw, withBanned: withBannedRaw } = req.query;
 			const beforeTimestamp = isNaN(Number(beforeTimestampRaw)) ? 0 : Number(beforeTimestampRaw);
 			const withBanned = withBannedRaw === 'true';
-			const idx = withBanned ? last200Posts.findIndex(p => p.createTimestamp < beforeTimestamp) : -1;
+			const idx = withBanned
+				? beforeTimestamp === 0
+					? 0
+					: last200Posts.findIndex(p => p.createTimestamp < beforeTimestamp)
+				: -1;
 			if (!withBanned && idx <= 200 - 10) {
 				return res.json(last200Posts.slice(idx, idx + 10));
 			}
 			const posts = await postRepository.find({
 				where: withBanned
-					? { createTimestamp: LessThan(beforeTimestamp) }
+					? beforeTimestamp === 0
+						? {}
+						: { createTimestamp: LessThan(beforeTimestamp) }
+					: beforeTimestamp === 0
+					? { banned: false }
 					: { createTimestamp: LessThan(beforeTimestamp), banned: false },
 				order: { createTimestamp: 'DESC' },
 				take: 10,
