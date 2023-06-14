@@ -6,7 +6,7 @@ import { validateBanPost, validatePostsStatus } from '../middlewares/validate';
 import { postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 
-export async function startReader(port: number, db: DataSource) {
+export async function startReader(sharedData: { predefinedTexts: string[] }, port: number, db: DataSource) {
 	const app = express();
 
 	const whitelist = [];
@@ -31,6 +31,15 @@ export async function startReader(port: number, db: DataSource) {
 			return res.end('PONG');
 		} catch {
 			return res.end('NO-PONG');
+		}
+	});
+
+	app.get('/get-idea', async (req, res) => {
+		try {
+			const idx = Math.floor(Math.random() * sharedData.predefinedTexts.length);
+			return res.json(sharedData.predefinedTexts[idx]);
+		} catch {
+			return res.end('No idea :(');
 		}
 	});
 
@@ -106,4 +115,6 @@ export async function startReader(port: number, db: DataSource) {
 	app.listen(port, () => {
 		console.log(`Reader is listening on ${port}`);
 	});
+
+	return updateCache;
 }

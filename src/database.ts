@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import fs from 'fs';
 //
 import { VenomFeedPostEntity } from './entities/VenomFeedPost.entity';
+import { PredefinedTextEntity } from './entities/PredefinedText.entity';
 
 export const AppDataSource = new DataSource({
 	type: 'postgres',
@@ -18,10 +19,11 @@ export const AppDataSource = new DataSource({
 			  }
 			: false,
 	// logging: true,
-	entities: [VenomFeedPostEntity],
+	entities: [VenomFeedPostEntity, PredefinedTextEntity],
 	subscribers: [],
 	migrations: [],
 	synchronize: process.env.POSTGRES_SYNC === 'true',
 });
 
 export const postRepository = AppDataSource.getRepository(VenomFeedPostEntity);
+export const predefinedTextRepository = AppDataSource.getRepository(PredefinedTextEntity);

@@ -18,6 +18,15 @@ export class VenomFeedPostEntity {
 	@Column({ type: 'jsonb', nullable: true, default: null })
 	content!: any | null;
 
+	@Column({ type: 'text', default: '', nullable: false })
+	contentText!: string;
+
 	@Column({ type: 'boolean', default: false, nullable: false })
 	banned!: boolean;
+
+	@Column({ type: 'boolean', default: false, nullable: false })
+	isAutobanned!: boolean;
+
+	@Column({ type: 'boolean', default: false, nullable: false })
+	isPredefined!: boolean;
 }
