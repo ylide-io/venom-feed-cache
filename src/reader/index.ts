@@ -1,6 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import { DataSource } from 'typeorm';
+import { DataSource, LessThan } from 'typeorm';
 import cors from 'cors';
 import { validateBanPost, validatePostsStatus } from '../middlewares/validate';
 import { postRepository } from '../database';
@@ -51,18 +51,19 @@ export async function startReader(port: number, db: DataSource) {
 
 	app.get('/posts', async (req, res) => {
 		try {
-			const { limit: limitRaw, offset: offsetRaw, withBanned: withBannedRaw } = req.query;
-			const limit = isNaN(Number(limitRaw)) ? 10 : Math.max(50, Math.min(50, Number(limitRaw)));
-			const offset = isNaN(Number(offsetRaw)) ? 0 : Math.max(0, Number(offsetRaw));
+			const { beforeTimestamp: beforeTimestampRaw, withBanned: withBannedRaw } = req.query;
+			const beforeTimestamp = isNaN(Number(beforeTimestampRaw)) ? 0 : Number(beforeTimestampRaw);
 			const withBanned = withBannedRaw === 'true';
-			if (!withBanned && limit <= 200 && offset + limit <= 200) {
-				return res.json(last200Posts.slice(offset, offset + limit));
+			const idx = withBanned ? last200Posts.findIndex(p => p.createTimestamp < beforeTimestamp) : -1;
+			if (!withBanned && idx <= 200 - 10) {
+				return res.json(last200Posts.slice(idx, idx + 10));
 			}
 			const posts = await postRepository.find({
-				where: withBanned ? {} : { banned: false },
+				where: withBanned
+					? { createTimestamp: LessThan(beforeTimestamp) }
+					: { createTimestamp: LessThan(beforeTimestamp), banned: false },
 				order: { createTimestamp: 'DESC' },
-				take: limit,
-				skip: offset,
+				take: 10,
 			});
 			res.json(posts);
 		} catch (e) {
