@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm';
 import cors from 'cors';
 import { validateBanPost } from '../middlewares/validate';
 import { postRepository } from '../database';
+import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 
 export async function startReader(port: number, db: DataSource) {
 	const app = express();
@@ -30,6 +31,43 @@ export async function startReader(port: number, db: DataSource) {
 			return res.end('PONG');
 		} catch {
 			return res.end('NO-PONG');
+		}
+	});
+
+	let last200Posts: VenomFeedPostEntity[] = [];
+
+	async function updateCache() {
+		const posts = await postRepository.find({
+			where: { banned: false },
+			order: { createTimestamp: 'DESC' },
+			take: 200,
+		});
+		last200Posts = posts;
+	}
+
+	await updateCache();
+
+	setInterval(updateCache, 5 * 1000);
+
+	app.get('/posts', async (req, res) => {
+		try {
+			const { limit: limitRaw, offset: offsetRaw, withBanned: withBannedRaw } = req.query;
+			const limit = isNaN(Number(limitRaw)) ? 10 : Math.max(50, Math.min(50, Number(limitRaw)));
+			const offset = isNaN(Number(offsetRaw)) ? 0 : Math.max(0, Number(offsetRaw));
+			const withBanned = withBannedRaw === 'true';
+			if (!withBanned && limit <= 200 && offset + limit <= 200) {
+				return res.json(last200Posts.slice(offset, offset + limit));
+			}
+			const posts = await postRepository.find({
+				where: withBanned ? {} : { banned: false },
+				order: { createTimestamp: 'DESC' },
+				take: limit,
+				skip: offset,
+			});
+			res.json(posts);
+		} catch (e) {
+			console.error(e);
+			res.sendStatus(500);
 		}
 	});
 

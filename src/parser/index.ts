@@ -47,11 +47,7 @@ export async function startParser() {
 		1,
 	);
 
-	async function updateFeed(fullScan = false) {
-		let firstPost = null;
-		if (!fullScan) {
-			firstPost = await postRepository.findOne({ where: {}, order: { createTimestamp: 'DESC' } });
-		}
+	async function updateFeed() {
 		let lastPost: any = null;
 		let i = 0;
 		while (true) {
@@ -64,13 +60,14 @@ export async function startParser() {
 				},
 				lastPost,
 				null,
-				50,
+				20,
 			);
 
+			if (history.length === 0) {
+				return;
+			}
+
 			for (const msg of history) {
-				if (firstPost && msg.msgId === firstPost.id) {
-					return;
-				}
 				const exists = await postRepository.findOne({ where: { id: msg.msgId } });
 				if (exists) {
 					return;
@@ -104,7 +101,12 @@ export async function startParser() {
 		}
 	}
 
-	await updateFeed(true);
+	await updateFeed();
+
+	setInterval(async () => {
+		await updateFeed();
+		console.log('Feed updated');
+	}, 10 * 1000);
 
 	console.log('Parser done');
 }
