@@ -16,6 +16,7 @@ import { EverscaleBlockchainController } from '@ylide/everscale';
 import { BlockchainSourceType, Uint256 } from '@ylide/sdk';
 import { postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
+import { sendTGAlert } from '../utils/telegram';
 
 export async function startParser() {
 	Object.assign(core, coreDeepCopy);
@@ -104,8 +105,15 @@ export async function startParser() {
 	await updateFeed();
 
 	setInterval(async () => {
-		await updateFeed();
-		console.log('Feed updated');
+		try {
+			await updateFeed();
+		} catch (e: any) {
+			console.error(e);
+			sendTGAlert(`!!!!!! Venom feed error: ${e.message}`).catch(err => {
+				console.error('TG error', err);
+			});
+		}
+		console.log(`[${new Date().toISOString()}] Feed updated`);
 	}, 10 * 1000);
 
 	console.log('Parser done');
