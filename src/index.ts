@@ -10,8 +10,9 @@ async function run() {
 	const pool = await AppDataSource.initialize();
 	console.log('Database connected');
 	console.log('Venom feed started');
-	const updateCache = await startReader(Number(env.PORT), pool);
-	await startParser(updateCache);
+	const sharedData: { predefinedTexts: string[] } = { predefinedTexts: [] };
+	const updateCache = await startReader(sharedData, Number(env.PORT), pool);
+	await startParser(sharedData, updateCache);
 }
 
 run();
