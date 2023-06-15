@@ -19,6 +19,7 @@ import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 import { sendTGAlert } from '../utils/telegram';
 import { retry } from '../utils/retry';
 import asyncTimer from '../utils/asyncTimer';
+import { badWordsLowerCase } from '../utils/badWords';
 
 export async function startParser(data: { predefinedTexts: string[] }, updateCache: () => Promise<void>) {
 	Object.assign(core, coreDeepCopy);
@@ -70,7 +71,13 @@ export async function startParser(data: { predefinedTexts: string[] }, updateCac
 	}
 
 	function shouldBeBanned(text: string) {
-		console.log('checking text for banning: ', JSON.stringify(text));
+		const textLowerCase = text.toLowerCase();
+		const words = textLowerCase.matchAll(/[a-z]+/g);
+		for (const word of words) {
+			if (badWordsLowerCase.includes(word[0])) {
+				return true;
+			}
+		}
 		return false;
 	}
 
