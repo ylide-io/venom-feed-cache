@@ -60,22 +60,27 @@ export async function startReader(sharedData: { predefinedTexts: string[] }, por
 
 	app.get('/posts', async (req, res) => {
 		try {
-			const { beforeTimestamp: beforeTimestampRaw, withBanned: withBannedRaw } = req.query;
+			const { beforeTimestamp: beforeTimestampRaw, adminMode: adminModeRaw } = req.query;
 			const beforeTimestamp = isNaN(Number(beforeTimestampRaw)) ? 0 : Number(beforeTimestampRaw);
-			const withBanned = withBannedRaw === 'true';
-			const idx = !withBanned
+			const adminMode = adminModeRaw === 'true';
+			const idx = !adminMode
 				? beforeTimestamp === 0
 					? 0
 					: last200Posts.findIndex(p => p.createTimestamp < beforeTimestamp)
 				: -1;
-			if (!withBanned && idx <= 200 - 10) {
+			if (!adminMode && idx <= 200 - 10) {
 				return res.json(last200Posts.slice(idx, idx + 10));
 			}
 			const posts = await postRepository.find({
-				where: withBanned
+				where: adminMode
 					? beforeTimestamp === 0
-						? {}
-						: { createTimestamp: LessThan(beforeTimestamp) }
+						? { isAutobanned: false, banned: false, isPredefined: false }
+						: {
+								isAutobanned: false,
+								banned: false,
+								isPredefined: false,
+								createTimestamp: LessThan(beforeTimestamp),
+						  }
 					: beforeTimestamp === 0
 					? { banned: false }
 					: { createTimestamp: LessThan(beforeTimestamp), banned: false },

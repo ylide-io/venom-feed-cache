@@ -25,7 +25,7 @@ export const validateBanPost = (req: Request, res: Response, next: NextFunction)
 	if (error) {
 		return res.status(400).json({ error: error.details[0].message });
 	}
-	if (req.query.secret !== process.env.ADMIN_SECRET) {
+	if (typeof req.query.secret !== 'string' || !process.env.ADMIN_SECRET?.split(',').includes(req.query.secret)) {
 		return res.status(400).json({ error: 'Wrong admin secret' });
 	}
 	next();
