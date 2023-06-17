@@ -68,7 +68,7 @@ export async function startReader(sharedData: { predefinedTexts: string[] }, por
 					? 0
 					: last200Posts.findIndex(p => p.createTimestamp < beforeTimestamp)
 				: -1;
-			if (!adminMode && idx <= 200 - 10) {
+			if (!adminMode && idx <= last200Posts.length - 10) {
 				return res.json(last200Posts.slice(idx, idx + 10));
 			}
 			const posts = await postRepository.find({
@@ -108,6 +108,12 @@ export async function startReader(sharedData: { predefinedTexts: string[] }, por
 	app.post('/ban-posts', validateBanPost, async (req, res) => {
 		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
 		await postRepository.update(ids, { banned: true });
+		for (const id of ids) {
+			const idx = last200Posts.findIndex(p => p.id === id);
+			if (idx !== -1) {
+				last200Posts.splice(idx, 1);
+			}
+		}
 		res.sendStatus(201);
 	});
 
