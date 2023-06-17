@@ -153,7 +153,8 @@ export async function startParser(data: { predefinedTexts: string[] }, updateCac
 							? result.content.content
 							: result.content.content.toString()
 					).trim();
-					const isPredefined = data.predefinedTexts.some(t => post.contentText === t);
+					const isPredefined =
+						post.contentText.trim() === '' || data.predefinedTexts.some(t => post.contentText === t);
 					if (isPredefined) {
 						post.isPredefined = true;
 					} else {
