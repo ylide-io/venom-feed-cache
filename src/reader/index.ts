@@ -99,7 +99,7 @@ export async function startReader(
 		}
 	});
 
-	let status = fs.readFileSync('./status.txt', 'utf-8');
+	let status = fs.readFileSync('./status.txt', 'utf-8').trim();
 
 	app.get('/service-status', async (req, res) => {
 		res.json({ status });
