@@ -13,7 +13,7 @@ const banPostSchema = Joi.object({
 });
 
 const banAddressesSchema = Joi.object({
-	addresses: Joi.array().items(Joi.string()).required(),
+	address: JoiId.required(),
 	secret: Joi.string().required(),
 });
 
