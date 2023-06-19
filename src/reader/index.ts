@@ -2,7 +2,8 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { DataSource, LessThan } from 'typeorm';
 import cors from 'cors';
-import { validateBanAddresses, validateBanPost, validatePostsStatus } from '../middlewares/validate';
+import fs from 'fs';
+import { validateAdmin, validateBanAddresses, validateBanPost, validatePostsStatus } from '../middlewares/validate';
 import { bannedAddressRepository, postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 
@@ -98,6 +99,24 @@ export async function startReader(
 		}
 	});
 
+	let status = fs.readFileSync('./status.txt', 'utf-8');
+
+	app.get('/service-status', async (req, res) => {
+		res.json({ status });
+	});
+
+	app.get('/stop-service', validateAdmin, async (req, res) => {
+		status = 'STOPPED';
+		fs.writeFileSync('./status.txt', status);
+		res.sendStatus(201);
+	});
+
+	app.get('/start-service', validateAdmin, async (req, res) => {
+		status = 'ACTIVE';
+		fs.writeFileSync('./status.txt', status);
+		res.sendStatus(201);
+	});
+
 	app.get('/posts-status', validatePostsStatus, async (req, res) => {
 		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
 		const result = await postRepository
@@ -136,7 +155,7 @@ export async function startReader(
 		res.sendStatus(201);
 	});
 
-	app.post('/unban-addresses', validateBanAddresses, async (req, res) => {
+	app.delete('/unban-addresses', validateBanAddresses, async (req, res) => {
 		const addresses = typeof req.query.address === 'string' ? [req.query.address] : (req.query.address as string[]);
 		await bannedAddressRepository.delete(addresses);
 		await updateCache();
