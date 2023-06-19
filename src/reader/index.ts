@@ -127,8 +127,9 @@ export async function startReader(
 		if (newAddresses.length) {
 			await bannedAddressRepository.insert(newAddresses.map(address => ({ address })));
 			await bannedAddressRepository.query(
-				`UPDATE venom_feed_post SET banned = true, "isAutobanned" = true WHERE sender IN (:...addresses)`,
-				newAddresses,
+				`UPDATE venom_feed_post SET banned = true, "isAutobanned" = true WHERE sender IN (${newAddresses
+					.map(a => `'${a}'`)
+					.join(', ')})`,
 			);
 			await updateCache();
 		}
