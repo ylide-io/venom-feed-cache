@@ -1,6 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import { DataSource, LessThan } from 'typeorm';
+import { DataSource, LessThan, MoreThan } from 'typeorm';
 import cors from 'cors';
 import fs from 'fs';
 import { validateAdmin, validateBanAddresses, validateBanPost, validatePostsStatus } from '../middlewares/validate';
@@ -84,13 +84,14 @@ export async function startReader(
 								isAutobanned: false,
 								banned: false,
 								isPredefined: false,
-								createTimestamp: LessThan(beforeTimestamp),
+								isApproved: false,
+								createTimestamp: MoreThan(beforeTimestamp),
 						  }
 					: beforeTimestamp === 0
 					? { banned: false }
 					: { createTimestamp: LessThan(beforeTimestamp), banned: false },
-				order: { createTimestamp: 'DESC' },
-				take: 10,
+				order: { createTimestamp: adminMode ? 'ASC' : 'DESC' },
+				take: adminMode ? 100 : 10,
 			});
 			return res.json(posts);
 		} catch (e) {
@@ -137,6 +138,12 @@ export async function startReader(
 				last200Posts.splice(idx, 1);
 			}
 		}
+		res.sendStatus(201);
+	});
+
+	app.post('/approve-posts', validateBanPost, async (req, res) => {
+		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
+		await postRepository.update(ids, { isApproved: true });
 		res.sendStatus(201);
 	});
 
