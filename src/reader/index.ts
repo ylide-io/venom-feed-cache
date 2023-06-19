@@ -91,7 +91,7 @@ export async function startReader(
 					? { banned: false }
 					: { createTimestamp: LessThan(beforeTimestamp), banned: false },
 				order: { createTimestamp: adminMode ? 'ASC' : 'DESC' },
-				take: adminMode ? 100 : 10,
+				take: adminMode ? 10 : 10,
 			});
 			return res.json(posts);
 		} catch (e) {
