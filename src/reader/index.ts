@@ -6,7 +6,11 @@ import { validateBanAddresses, validateBanPost, validatePostsStatus } from '../m
 import { bannedAddressRepository, postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 
-export async function startReader(sharedData: { predefinedTexts: string[] }, port: number, db: DataSource) {
+export async function startReader(
+	sharedData: { predefinedTexts: string[]; bannedAddresses: string[] },
+	port: number,
+	db: DataSource,
+) {
 	const app = express();
 
 	const whitelist = [];
@@ -119,12 +123,15 @@ export async function startReader(sharedData: { predefinedTexts: string[] }, por
 
 	app.post('/ban-addresses', validateBanAddresses, async (req, res) => {
 		const addresses = typeof req.query.address === 'string' ? [req.query.address] : (req.query.address as string[]);
-		await bannedAddressRepository.insert(addresses.map(address => ({ address })));
-		await bannedAddressRepository.query(
-			`UPDATE venom_feed_post SET banned = true, "isAutobanned" = true WHERE address IN (:...addresses)`,
-			addresses,
-		);
-		await updateCache();
+		const newAddresses = addresses.filter(a => !sharedData.bannedAddresses.includes(a));
+		if (newAddresses.length) {
+			await bannedAddressRepository.insert(newAddresses.map(address => ({ address })));
+			await bannedAddressRepository.query(
+				`UPDATE venom_feed_post SET banned = true, "isAutobanned" = true WHERE address IN (:...addresses)`,
+				newAddresses,
+			);
+			await updateCache();
+		}
 		res.sendStatus(201);
 	});
 
