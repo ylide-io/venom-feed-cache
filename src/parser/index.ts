@@ -14,14 +14,17 @@ const coreDeepCopy: typeof core = {
 
 import { EverscaleBlockchainController } from '@ylide/everscale';
 import { BlockchainSourceType, IMessage, IMessageContent, MessageBlob, MessageContainer, Uint256 } from '@ylide/sdk';
-import { postRepository, predefinedTextRepository } from '../database';
+import { bannedAddressRepository, postRepository, predefinedTextRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 import { sendTGAlert } from '../utils/telegram';
 import { retry } from '../utils/retry';
 import asyncTimer from '../utils/asyncTimer';
 import { badWordsLowerCase } from '../utils/badWords';
 
-export async function startParser(data: { predefinedTexts: string[] }, updateCache: () => Promise<void>) {
+export async function startParser(
+	data: { predefinedTexts: string[]; bannedAddresses: string[] },
+	updateCache: () => Promise<void>,
+) {
 	Object.assign(core, coreDeepCopy);
 
 	const provider = await EverscaleStandaloneClient.create({
@@ -54,6 +57,11 @@ export async function startParser(data: { predefinedTexts: string[] }, updateCac
 	async function updatePredefinedTexts() {
 		const texts = await predefinedTextRepository.find();
 		data.predefinedTexts = texts.map(t => t.text);
+	}
+
+	async function updateBannedAddresses() {
+		const texts = await bannedAddressRepository.find();
+		data.bannedAddresses = texts.map(t => t.address);
 	}
 
 	function decryptBroadcastContent(msg: IMessage, content: IMessageContent) {
@@ -158,7 +166,8 @@ export async function startParser(data: { predefinedTexts: string[] }, updateCac
 					if (isPredefined) {
 						post.isPredefined = true;
 					} else {
-						const isAutobanned = shouldBeBanned(post.contentText);
+						const isBannedAddress = data.bannedAddresses.includes(post.sender);
+						const isAutobanned = isBannedAddress || shouldBeBanned(post.contentText);
 						if (isAutobanned) {
 							post.isAutobanned = true;
 							post.banned = true;
@@ -174,10 +183,12 @@ export async function startParser(data: { predefinedTexts: string[] }, updateCac
 	}
 
 	await updatePredefinedTexts();
+	await updateBannedAddresses();
 	await updateFeed();
 
 	asyncTimer(async () => {
 		await updatePredefinedTexts();
+		await updateBannedAddresses();
 	}, 10 * 1000);
 
 	asyncTimer(async () => {

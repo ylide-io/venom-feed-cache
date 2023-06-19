@@ -3,6 +3,7 @@ import fs from 'fs';
 //
 import { VenomFeedPostEntity } from './entities/VenomFeedPost.entity';
 import { PredefinedTextEntity } from './entities/PredefinedText.entity';
+import { BannedAddressEntity } from './entities/BannedAddress.entity';
 
 export const AppDataSource = new DataSource({
 	type: 'postgres',
@@ -19,7 +20,7 @@ export const AppDataSource = new DataSource({
 			  }
 			: false,
 	// logging: true,
-	entities: [VenomFeedPostEntity, PredefinedTextEntity],
+	entities: [VenomFeedPostEntity, PredefinedTextEntity, BannedAddressEntity],
 	subscribers: [],
 	migrations: [],
 	synchronize: process.env.POSTGRES_SYNC === 'true',
@@ -27,3 +28,4 @@ export const AppDataSource = new DataSource({
 
 export const postRepository = AppDataSource.getRepository(VenomFeedPostEntity);
 export const predefinedTextRepository = AppDataSource.getRepository(PredefinedTextEntity);
+export const bannedAddressRepository = AppDataSource.getRepository(BannedAddressEntity);

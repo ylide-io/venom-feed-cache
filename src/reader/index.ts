@@ -3,7 +3,7 @@ import bodyParser from 'body-parser';
 import { DataSource, LessThan } from 'typeorm';
 import cors from 'cors';
 import { validateBanPost, validatePostsStatus } from '../middlewares/validate';
-import { postRepository } from '../database';
+import { bannedAddressRepository, postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 
 export async function startReader(sharedData: { predefinedTexts: string[] }, port: number, db: DataSource) {
@@ -114,6 +114,24 @@ export async function startReader(sharedData: { predefinedTexts: string[] }, por
 				last200Posts.splice(idx, 1);
 			}
 		}
+		res.sendStatus(201);
+	});
+
+	app.post('/ban-addresses', validateBanPost, async (req, res) => {
+		const addresses = typeof req.query.address === 'string' ? [req.query.address] : (req.query.address as string[]);
+		await bannedAddressRepository.insert(addresses.map(address => ({ address })));
+		await bannedAddressRepository.query(
+			`UPDATE venom_feed_post SET banned = true, "isAutobanned" = true WHERE address IN (:...addresses)`,
+			addresses,
+		);
+		await updateCache();
+		res.sendStatus(201);
+	});
+
+	app.post('/unban-addresses', validateBanPost, async (req, res) => {
+		const addresses = typeof req.query.address === 'string' ? [req.query.address] : (req.query.address as string[]);
+		await bannedAddressRepository.delete(addresses);
+		await updateCache();
 		res.sendStatus(201);
 	});
 
