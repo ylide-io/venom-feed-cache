@@ -12,10 +12,26 @@ const banPostSchema = Joi.object({
 	secret: Joi.string().required(),
 });
 
+const banAddressesSchema = Joi.object({
+	addresses: Joi.array().items(Joi.string()).required(),
+	secret: Joi.string().required(),
+});
+
 export const validatePostsStatus = (req: Request, res: Response, next: NextFunction) => {
 	const { error } = postsStatusSchema.validate(req.query);
 	if (error) {
 		return res.status(400).json({ error: error.details[0].message });
+	}
+	next();
+};
+
+export const validateBanAddresses = (req: Request, res: Response, next: NextFunction) => {
+	const { error } = banAddressesSchema.validate(req.query);
+	if (error) {
+		return res.status(400).json({ error: error.details[0].message });
+	}
+	if (typeof req.query.secret !== 'string' || !process.env.ADMIN_SECRET?.split(',').includes(req.query.secret)) {
+		return res.status(400).json({ error: 'Wrong admin secret' });
 	}
 	next();
 };

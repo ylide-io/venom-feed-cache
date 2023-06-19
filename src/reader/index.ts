@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { DataSource, LessThan } from 'typeorm';
 import cors from 'cors';
-import { validateBanPost, validatePostsStatus } from '../middlewares/validate';
+import { validateBanAddresses, validateBanPost, validatePostsStatus } from '../middlewares/validate';
 import { bannedAddressRepository, postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 
@@ -117,7 +117,7 @@ export async function startReader(sharedData: { predefinedTexts: string[] }, por
 		res.sendStatus(201);
 	});
 
-	app.post('/ban-addresses', validateBanPost, async (req, res) => {
+	app.post('/ban-addresses', validateBanAddresses, async (req, res) => {
 		const addresses = typeof req.query.address === 'string' ? [req.query.address] : (req.query.address as string[]);
 		await bannedAddressRepository.insert(addresses.map(address => ({ address })));
 		await bannedAddressRepository.query(
@@ -128,7 +128,7 @@ export async function startReader(sharedData: { predefinedTexts: string[] }, por
 		res.sendStatus(201);
 	});
 
-	app.post('/unban-addresses', validateBanPost, async (req, res) => {
+	app.post('/unban-addresses', validateBanAddresses, async (req, res) => {
 		const addresses = typeof req.query.address === 'string' ? [req.query.address] : (req.query.address as string[]);
 		await bannedAddressRepository.delete(addresses);
 		await updateCache();
