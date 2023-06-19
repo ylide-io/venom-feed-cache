@@ -79,7 +79,7 @@ export async function startReader(
 			const posts = await postRepository.find({
 				where: adminMode
 					? beforeTimestamp === 0
-						? { isAutobanned: false, banned: false, isPredefined: false }
+						? { isAutobanned: false, banned: false, isPredefined: false, isApproved: false }
 						: {
 								isAutobanned: false,
 								banned: false,
