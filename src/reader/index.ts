@@ -100,6 +100,33 @@ export async function startReader(
 		}
 	});
 
+	app.get('/post', async (req, res) => {
+		try {
+			const { id: idRaw, adminMode: adminModeRaw } = req.query;
+			const id = String(idRaw);
+			const adminMode = adminModeRaw === 'true';
+			const idx = !adminMode ? last200Posts.findIndex(p => p.id === id) : -1;
+			if (idx !== -1 && !adminMode && idx <= last200Posts.length - 10) {
+				return res.json(last200Posts.find(p => p.id === id));
+			}
+			const post = await postRepository.findOne({
+				where: adminMode
+					? {
+							isAutobanned: false,
+							banned: false,
+							isPredefined: false,
+							isApproved: false,
+							id,
+					  }
+					: { banned: false, id },
+			});
+			return res.json(post);
+		} catch (e) {
+			console.error(e);
+			res.sendStatus(500);
+		}
+	});
+
 	let status = fs.readFileSync('./status.txt', 'utf-8').trim();
 
 	app.get('/service-status', async (req, res) => {
