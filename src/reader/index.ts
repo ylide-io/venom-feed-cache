@@ -73,7 +73,7 @@ export async function startReader(
 					? 0
 					: last200Posts.findIndex(p => p.createTimestamp < beforeTimestamp)
 				: -1;
-			if (!adminMode && idx <= last200Posts.length - 10) {
+			if (idx !== -1 && !adminMode && idx <= last200Posts.length - 10) {
 				return res.json(last200Posts.slice(idx, idx + 10));
 			}
 			const posts = await postRepository.find({
