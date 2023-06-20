@@ -188,6 +188,45 @@ const goodWords = [
 	'superb',
 	'smoothly',
 	'transaction',
+	'testing',
+	'have',
+	'stay',
+	'tuned',
+	'them',
+	'earn',
+	'reliable',
+	'hyper',
+	'idea',
+	'y',
+	'most',
+	'popular',
+	'crypto',
+	'platform',
+	'wonderful',
+	'enjoying',
+	'every',
+	'bit',
+	'test',
+	'okay',
+	'bright',
+	'rock',
+	'your',
+	'perfect',
+	'me',
+	'me',
+	'im',
+	'bullish',
+	'joining',
+	'seeking',
+	'inspiration',
+	'from',
+	'minds',
+	'within',
+	'because',
+	'thrive',
+	'that',
+	'coming',
+	'market',
 ];
 
 const goodWordsSet = new Set(goodWords);
@@ -195,7 +234,7 @@ const goodWordsSet = new Set(goodWords);
 export function isGoodPost(text: string) {
 	const words = text
 		.toLowerCase()
-		.split(/[^a-zA-Z]+/g)
+		.split(/[^a-zA-Z\u00C0-\u1FFF\u2800-\uFFFD]+/g)
 		.map(t => t.trim())
 		.filter(t => !!t);
 	return words.length === 0 || words.every(w => goodWordsSet.has(w));
@@ -204,7 +243,7 @@ export function isGoodPost(text: string) {
 export function getNotGoodWords(text: string) {
 	const words = text
 		.toLowerCase()
-		.split(/[^a-zA-Z]+/g)
+		.split(/[^a-zA-Z\u00C0-\u1FFF\u2800-\uFFFD]+/g)
 		.map(t => t.trim())
 		.filter(t => !!t);
 	return words.filter(w => !goodWordsSet.has(w));
