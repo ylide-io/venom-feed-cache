@@ -15,7 +15,7 @@ async function run() {
 		bannedAddresses: [],
 	};
 	const updateCache = await startReader(sharedData, Number(env.PORT), pool);
-	await startParser(sharedData, updateCache);
+	await startParser(sharedData, updateCache, env.READ_FEED === 'true');
 }
 
 run();

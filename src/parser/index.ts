@@ -24,6 +24,7 @@ import { badWordsLowerCase } from '../utils/badWords';
 export async function startParser(
 	data: { predefinedTexts: string[]; bannedAddresses: string[] },
 	updateCache: () => Promise<void>,
+	readFeed: boolean,
 ) {
 	Object.assign(core, coreDeepCopy);
 
@@ -193,9 +194,11 @@ export async function startParser(
 
 	asyncTimer(async () => {
 		try {
-			const smthAdded = await updateFeed();
-			if (smthAdded) {
-				await updateCache();
+			if (readFeed) {
+				const smthAdded = await updateFeed();
+				if (smthAdded) {
+					await updateCache();
+				}
 			}
 		} catch (e: any) {
 			console.error(e);
