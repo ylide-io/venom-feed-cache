@@ -90,6 +90,39 @@ export async function startParser(
 		return false;
 	}
 
+	const goodWords = [
+		'hi',
+		'hello',
+		'gm',
+		'lfg',
+		'venom',
+		'ylide',
+		'lets',
+		'go',
+		'to',
+		'the',
+		'moon',
+		'everybody',
+		'is',
+		'a',
+		'here',
+		'nice',
+		'day',
+		'great',
+		'project',
+		'venoms',
+		'yup',
+		'all',
+		'when',
+		'mainnet',
+		'airdrop',
+	];
+
+	function isGoodPost(text: string) {
+		const words = text.toLowerCase().split(/[^a-zA-Z]+/g);
+		return words.every(w => goodWords.includes(w));
+	}
+
 	async function updateFeed() {
 		let lastPost: any = null;
 		let i = 0;
@@ -162,8 +195,14 @@ export async function startParser(
 							? result.content.content
 							: result.content.content.toString()
 					).trim();
-					const isPredefined =
+					let isPredefined =
 						post.contentText.trim() === '' || data.predefinedTexts.some(t => post.contentText === t);
+					if (!isPredefined) {
+						isPredefined = isGoodPost(post.contentText);
+						if (isPredefined) {
+							console.log('Good post: ' + post.contentText);
+						}
+					}
 					if (isPredefined) {
 						post.isPredefined = true;
 					} else {
