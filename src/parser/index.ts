@@ -600,6 +600,9 @@ export async function startParser(
 
 	function shouldBeBanned(text: string) {
 		const textLowerCase = text.toLowerCase();
+		if (textLowerCase.includes('bchain.fun')) {
+			return true;
+		}
 		const words = textLowerCase.matchAll(/[a-z]+/g);
 		for (const word of words) {
 			if (badWordsLowerCase.includes(word[0])) {
