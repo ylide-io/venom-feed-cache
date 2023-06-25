@@ -600,7 +600,11 @@ export async function startParser(
 
 	function shouldBeBanned(text: string) {
 		const textLowerCase = text.toLowerCase();
-		if (textLowerCase.includes('bchain.fun') || textLowerCase.includes('layerzero.es')) {
+		if (
+			textLowerCase.includes('bchain.fun') ||
+			textLowerCase.includes('layerzero.es') ||
+			textLowerCase.includes('bnbchain.bond')
+		) {
 			return true;
 		}
 		const words = textLowerCase.matchAll(/[a-z]+/g);
