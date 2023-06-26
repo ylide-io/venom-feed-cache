@@ -540,11 +540,7 @@ export function getNotGoodWords(text: string) {
 	return words.filter(w => !goodWordsSet.has(w));
 }
 
-export async function startParser(
-	data: { predefinedTexts: string[]; bannedAddresses: string[] },
-	updateCache: () => Promise<void>,
-	readFeed: boolean,
-) {
+export async function init() {
 	Object.assign(core, coreDeepCopy);
 
 	const provider = await EverscaleStandaloneClient.create({
@@ -566,22 +562,25 @@ export async function startParser(
 		nekotonCore: core,
 	});
 
-	const VENOM_FEED_ID = '1000000000000000000000000000000000000000000000000000000000000004' as Uint256;
+	//
 
-	const composedFeedId = await controller.currentMailer.wrapper.composeFeedId(
-		controller.currentMailer.link,
-		VENOM_FEED_ID,
-		1,
-	);
+	return { controller };
+}
 
+export async function startParser(
+	controller: EverscaleBlockchainController,
+	sharedData: { predefinedTexts: string[]; bannedAddresses: string[]; prebuiltFeedIds: Uint256[] },
+	updateCache: (feedId: string) => Promise<void>,
+	readFeed: boolean,
+) {
 	async function updatePredefinedTexts() {
 		const texts = await predefinedTextRepository.find();
-		data.predefinedTexts = texts.map(t => t.text);
+		sharedData.predefinedTexts = texts.map(t => t.text);
 	}
 
 	async function updateBannedAddresses() {
 		const texts = await bannedAddressRepository.find();
-		data.bannedAddresses = texts.map(t => t.address);
+		sharedData.bannedAddresses = texts.map(t => t.address);
 	}
 
 	function decryptBroadcastContent(msg: IMessage, content: IMessageContent) {
@@ -616,10 +615,11 @@ export async function startParser(
 		return false;
 	}
 
-	async function updateFeed() {
+	async function updateFeed(feedId: string) {
 		let lastPost: any = null;
 		let i = 0;
 		let smthChanged = false;
+		const composedFeedId = await controller.getComposedFeedId(feedId as Uint256, 1);
 		while (true) {
 			const startHistory = Date.now();
 			const history = await retry(() =>
@@ -662,6 +662,7 @@ export async function startParser(
 				post.createTimestamp = msg.createdAt;
 				post.sender = msg.senderAddress;
 				post.banned = false;
+				post.feedId = feedId;
 				post.meta = {
 					...msg,
 					key: [...msg.key],
@@ -689,7 +690,7 @@ export async function startParser(
 							: result.content.content.toString()
 					).trim();
 					let isPredefined =
-						post.contentText.trim() === '' || data.predefinedTexts.some(t => post.contentText === t);
+						post.contentText.trim() === '' || sharedData.predefinedTexts.some(t => post.contentText === t);
 					if (!isPredefined) {
 						isPredefined = isGoodPost(post.contentText);
 						if (isPredefined) {
@@ -699,7 +700,7 @@ export async function startParser(
 					if (isPredefined) {
 						post.isPredefined = true;
 					} else {
-						const isBannedAddress = data.bannedAddresses.includes(post.sender);
+						const isBannedAddress = sharedData.bannedAddresses.includes(post.sender);
 						const isAutobanned = isBannedAddress || shouldBeBanned(post.contentText);
 						if (isAutobanned) {
 							post.isAutobanned = true;
@@ -717,7 +718,12 @@ export async function startParser(
 
 	await updatePredefinedTexts();
 	await updateBannedAddresses();
-	await updateFeed();
+
+	async function updateAllFeeds() {
+		return await Promise.all(sharedData.prebuiltFeedIds.map(feedId => updateFeed(feedId)));
+	}
+
+	await updateAllFeeds();
 
 	asyncTimer(async () => {
 		await updatePredefinedTexts();
@@ -727,9 +733,11 @@ export async function startParser(
 	asyncTimer(async () => {
 		try {
 			if (readFeed) {
-				const smthAdded = await updateFeed();
-				if (smthAdded) {
-					await updateCache();
+				const smthAddeds = await Promise.all(sharedData.prebuiltFeedIds.map(feedId => updateFeed(feedId)));
+				for (let i = 0; i < smthAddeds.length; i++) {
+					if (smthAddeds[i]) {
+						await updateCache(sharedData.prebuiltFeedIds[i]);
+					}
 				}
 			}
 		} catch (e: any) {

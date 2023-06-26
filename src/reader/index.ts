@@ -6,9 +6,11 @@ import fs from 'fs';
 import { validateAdmin, validateBanAddresses, validateBanPost, validatePostsStatus } from '../middlewares/validate';
 import { bannedAddressRepository, postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
+import { GLOBAL_VENOM_FEED_ID } from '../constants';
+import { Uint256 } from '@ylide/sdk';
 
 export async function startReader(
-	sharedData: { predefinedTexts: string[]; bannedAddresses: string[] },
+	sharedData: { predefinedTexts: string[]; bannedAddresses: string[]; prebuiltFeedIds: Uint256[] },
 	port: number,
 	db: DataSource,
 ) {
@@ -48,48 +50,59 @@ export async function startReader(
 		}
 	});
 
-	let last200Posts: VenomFeedPostEntity[] = [];
+	let last200Posts: Record<string, VenomFeedPostEntity[]> = {};
 
-	async function updateCache() {
+	async function updateCache(feedId: string) {
 		const posts = await postRepository.find({
-			where: { banned: false },
+			where: { banned: false, feedId },
 			order: { createTimestamp: 'DESC' },
 			take: 200,
 		});
-		last200Posts = posts;
+		last200Posts[feedId] = posts;
 	}
 
-	await updateCache();
+	async function updateAllCaches() {
+		await Promise.all(sharedData.prebuiltFeedIds.map(async feedId => updateCache(feedId)));
+	}
 
-	setInterval(updateCache, 5 * 1000);
+	for (const feedId of sharedData.prebuiltFeedIds) {
+		console.log(`Building cache for ${feedId}`);
+		await updateCache(feedId);
+	}
+
+	setInterval(updateAllCaches, 5 * 1000);
 
 	app.get('/posts', async (req, res) => {
 		try {
-			const { beforeTimestamp: beforeTimestampRaw, adminMode: adminModeRaw } = req.query;
+			const { beforeTimestamp: beforeTimestampRaw, adminMode: adminModeRaw, feedId: feedIdRaw } = req.query;
+			const feedId = feedIdRaw ? String(feedIdRaw) : GLOBAL_VENOM_FEED_ID;
 			const beforeTimestamp = isNaN(Number(beforeTimestampRaw)) ? 0 : Number(beforeTimestampRaw);
 			const adminMode = adminModeRaw === 'true';
 			const idx = !adminMode
 				? beforeTimestamp === 0
 					? 0
-					: last200Posts.findIndex(p => p.createTimestamp < beforeTimestamp)
+					: last200Posts[feedId]
+					? last200Posts[feedId].findIndex(p => p.createTimestamp < beforeTimestamp)
+					: -1
 				: -1;
-			if (idx !== -1 && !adminMode && idx <= last200Posts.length - 10) {
-				return res.json(last200Posts.slice(idx, idx + 10));
+			if (idx !== -1 && !adminMode && idx <= last200Posts[feedId].length - 10) {
+				return res.json(last200Posts[feedId].slice(idx, idx + 10));
 			}
 			const posts = await postRepository.find({
 				where: adminMode
 					? beforeTimestamp === 0
-						? { isAutobanned: false, banned: false, isPredefined: false, isApproved: false }
+						? { isAutobanned: false, banned: false, isPredefined: false, isApproved: false, feedId }
 						: {
 								isAutobanned: false,
 								banned: false,
+								feedId,
 								isPredefined: false,
 								isApproved: false,
 								createTimestamp: MoreThan(beforeTimestamp),
 						  }
 					: beforeTimestamp === 0
-					? { banned: false }
-					: { createTimestamp: LessThan(beforeTimestamp), banned: false },
+					? { banned: false, feedId }
+					: { createTimestamp: LessThan(beforeTimestamp), banned: false, feedId },
 				order: { createTimestamp: adminMode ? 'ASC' : 'DESC' },
 				take: adminMode ? 10 : 10,
 			});
@@ -105,10 +118,14 @@ export async function startReader(
 			const { id: idRaw, adminMode: adminModeRaw } = req.query;
 			const id = String(idRaw);
 			const adminMode = adminModeRaw === 'true';
-			const idx = !adminMode ? last200Posts.findIndex(p => p.id === id) : -1;
-			if (idx !== -1 && !adminMode && idx <= last200Posts.length - 10) {
-				return res.json(last200Posts.find(p => p.id === id));
-			}
+			// const idx = !adminMode
+			// 	? last200Posts[feedId]
+			// 		? last200Posts[feedId].findIndex(p => p.id === id)
+			// 		: -1
+			// 	: -1;
+			// if (idx !== -1 && !adminMode && idx <= last200Posts[feedId].length - 10) {
+			// 	return res.json(last200Posts[feedId].find(p => p.id === id));
+			// }
 			const post = await postRepository.findOne({
 				where: adminMode
 					? {
@@ -160,9 +177,11 @@ export async function startReader(
 		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
 		await postRepository.update(ids, { banned: true });
 		for (const id of ids) {
-			const idx = last200Posts.findIndex(p => p.id === id);
-			if (idx !== -1) {
-				last200Posts.splice(idx, 1);
+			for (const feedId of sharedData.prebuiltFeedIds) {
+				const idx = last200Posts[feedId] ? last200Posts[feedId].findIndex(p => p.id === id) : -1;
+				if (idx !== -1) {
+					last200Posts[feedId].splice(idx, 1);
+				}
 			}
 		}
 		res.sendStatus(201);
@@ -184,7 +203,7 @@ export async function startReader(
 					.map(a => `'${a}'`)
 					.join(', ')})`,
 			);
-			await updateCache();
+			await updateAllCaches();
 		}
 		res.sendStatus(201);
 	});
@@ -192,7 +211,7 @@ export async function startReader(
 	app.delete('/unban-addresses', validateBanAddresses, async (req, res) => {
 		const addresses = typeof req.query.address === 'string' ? [req.query.address] : (req.query.address as string[]);
 		await bannedAddressRepository.delete(addresses);
-		await updateCache();
+		await updateAllCaches();
 		res.sendStatus(201);
 	});
 

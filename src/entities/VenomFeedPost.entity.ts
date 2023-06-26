@@ -1,6 +1,8 @@
 import { Column, Entity, Index, OneToMany, PrimaryColumn } from 'typeorm';
+import { GLOBAL_VENOM_FEED_ID } from '../constants';
 
 @Entity()
+@Index(['banned', 'feedId', 'createTimestamp'])
 export class VenomFeedPostEntity {
 	@PrimaryColumn({ type: 'text' })
 	id!: string;
@@ -8,6 +10,10 @@ export class VenomFeedPostEntity {
 	@Column({ type: 'int' })
 	@Index()
 	createTimestamp!: number;
+
+	@Column({ type: 'varchar', length: 255, default: GLOBAL_VENOM_FEED_ID })
+	@Index()
+	feedId!: string;
 
 	@Column({ type: 'text' })
 	sender!: string;
