@@ -4,11 +4,43 @@ import { DataSource, LessThan, MoreThan } from 'typeorm';
 import cors from 'cors';
 import fs from 'fs';
 import { validateAdmin, validateBanAddresses, validateBanPost, validatePostsStatus } from '../middlewares/validate';
-import { bannedAddressRepository, postRepository } from '../database';
+import { adminRepository, bannedAddressRepository, postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 import { GLOBAL_VENOM_FEED_ID } from '../constants';
 import { Uint256 } from '@ylide/sdk';
 import asyncTimer from '../utils/asyncTimer';
+import { AdminEntity } from '../entities/Admin.entity';
+
+export interface IVenomFeedPostDTO {
+	id: string;
+	createTimestamp: number;
+	feedId: string;
+	sender: string;
+	meta: any;
+	content: any | null;
+	banned: boolean;
+	isAdmin: boolean;
+	adminTitle?: string;
+	adminRank?: string;
+	adminEmoji?: string;
+}
+
+function toDTO(post: VenomFeedPostEntity, admins: AdminEntity[]) {
+	const foundAdmin = admins.find(admin => admin.address === post.sender);
+	return {
+		id: post.id,
+		createTimestamp: post.createTimestamp,
+		feedId: post.feedId,
+		sender: post.sender,
+		meta: post.meta,
+		content: post.content,
+		banned: post.banned,
+		isAdmin: !!foundAdmin,
+		adminTitle: foundAdmin?.title,
+		adminRank: foundAdmin?.rank,
+		adminEmoji: foundAdmin?.emoji,
+	};
+}
 
 export async function startReader(
 	sharedData: { predefinedTexts: string[]; bannedAddresses: string[]; prebuiltFeedIds: Uint256[] },
@@ -51,10 +83,14 @@ export async function startReader(
 		}
 	});
 
-	let last200Posts: Record<string, VenomFeedPostEntity[]> = {};
+	let last200Posts: Record<string, IVenomFeedPostDTO[]> = {};
+	let admins: Record<string, AdminEntity[]> = {};
 
 	async function updateCache(feedId: string) {
 		const start = Date.now();
+		const _admins = await adminRepository.find({
+			where: { feedId },
+		});
 		const posts = await postRepository.find({
 			where: { banned: false, feedId },
 			order: { createTimestamp: 'DESC' },
@@ -63,7 +99,8 @@ export async function startReader(
 		if (Date.now() - start > 2000) {
 			console.log(`Cache for ${feedId} updated in ${Date.now() - start}ms`);
 		}
-		last200Posts[feedId] = posts;
+		admins[feedId] = _admins;
+		last200Posts[feedId] = posts.map(post => toDTO(post, _admins));
 	}
 
 	async function updateAllCaches() {
@@ -115,7 +152,7 @@ export async function startReader(
 				order: { createTimestamp: adminMode ? 'ASC' : 'DESC' },
 				take: adminMode ? 10 : 10,
 			});
-			return res.json(posts);
+			return res.json(posts.map(post => toDTO(post, admins[feedId])));
 		} catch (e) {
 			console.error(e);
 			res.sendStatus(500);
@@ -146,7 +183,7 @@ export async function startReader(
 					  }
 					: { banned: false, id },
 			});
-			return res.json(post);
+			return res.json(post ? toDTO(post, admins[post.feedId]) : null);
 		} catch (e) {
 			console.error(e);
 			res.sendStatus(500);
