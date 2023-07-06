@@ -53,11 +53,15 @@ export async function startReader(
 	let last200Posts: Record<string, VenomFeedPostEntity[]> = {};
 
 	async function updateCache(feedId: string) {
+		const start = Date.now();
 		const posts = await postRepository.find({
 			where: { banned: false, feedId },
 			order: { createTimestamp: 'DESC' },
 			take: 200,
 		});
+		if (Date.now() - start > 2000) {
+			console.log(`Cache for ${feedId} updated in ${Date.now() - start}ms`);
+		}
 		last200Posts[feedId] = posts;
 	}
 
