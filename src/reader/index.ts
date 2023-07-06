@@ -8,6 +8,7 @@ import { bannedAddressRepository, postRepository } from '../database';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 import { GLOBAL_VENOM_FEED_ID } from '../constants';
 import { Uint256 } from '@ylide/sdk';
+import asyncTimer from '../utils/asyncTimer';
 
 export async function startReader(
 	sharedData: { predefinedTexts: string[]; bannedAddresses: string[]; prebuiltFeedIds: Uint256[] },
@@ -66,7 +67,11 @@ export async function startReader(
 	}
 
 	async function updateAllCaches() {
+		const start = Date.now();
 		await Promise.all(sharedData.prebuiltFeedIds.map(async feedId => updateCache(feedId)));
+		if (Date.now() - start > 1000) {
+			console.log(`All caches updated in ${Date.now() - start}ms`);
+		}
 	}
 
 	for (const feedId of sharedData.prebuiltFeedIds) {
@@ -74,7 +79,7 @@ export async function startReader(
 		await updateCache(feedId);
 	}
 
-	setInterval(updateAllCaches, 5 * 1000);
+	asyncTimer(updateAllCaches, 5 * 1000);
 
 	app.get('/posts', async (req, res) => {
 		try {
