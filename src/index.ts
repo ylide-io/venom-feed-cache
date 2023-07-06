@@ -6,7 +6,7 @@ import { AppDataSource } from './database';
 import { getNotGoodWords, init, isGoodPost, startParser } from './parser';
 import { DataSource, MoreThan } from 'typeorm';
 import { VenomFeedPostEntity } from './entities/VenomFeedPost.entity';
-import { Uint256, asyncDelay } from '@ylide/sdk';
+import { Uint256 } from '@ylide/sdk';
 import { GLOBAL_VENOM_FEED_ID } from './constants';
 
 async function doGoodPosts(db: DataSource) {
