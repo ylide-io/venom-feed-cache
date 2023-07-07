@@ -1,6 +1,9 @@
 import dotenv from 'dotenv';
 const env = dotenv.config().parsed || {};
 
+import cluster from 'node:cluster';
+import { availableParallelism } from 'node:os';
+
 import { startReader } from './reader';
 import { AppDataSource } from './database';
 import { getNotGoodWords, init, isGoodPost, startParser } from './parser';
@@ -57,35 +60,50 @@ async function doGoodPosts(db: DataSource) {
 	}
 }
 
+const numCPUs = availableParallelism();
+
+const sharedData: { predefinedTexts: string[]; bannedAddresses: string[]; prebuiltFeedIds: Uint256[] } = {
+	predefinedTexts: [],
+	bannedAddresses: [],
+	prebuiltFeedIds: [
+		GLOBAL_VENOM_FEED_ID,
+		'1000000000000000000000000000000000000000000000000000000000000005' as Uint256,
+		'1000000000000000000000000000000000000000000000000000000000000006' as Uint256,
+		'1000000000000000000000000000000000000000000000000000000000000007' as Uint256,
+		'1000000000000000000000000000000000000000000000000000000000000008' as Uint256,
+		'1000000000000000000000000000000000000000000000000000000000000009' as Uint256,
+		'100000000000000000000000000000000000000000000000000000000000000a' as Uint256,
+		'100000000000000000000000000000000000000000000000000000000000000b' as Uint256,
+		'100000000000000000000000000000000000000000000000000000000000000c' as Uint256,
+		'100000000000000000000000000000000000000000000000000000000000000d' as Uint256,
+		'100000000000000000000000000000000000000000000000000000000000000e' as Uint256,
+		'100000000000000000000000000000000000000000000000000000000000000f' as Uint256,
+		'1000000000000000000000000000000000000000000000000000000000000010' as Uint256,
+	] as Uint256[],
+};
+
 async function run() {
+	if (cluster.isPrimary) {
+		console.log(`Primary ${process.pid} is running`);
+
+		// Fork workers.
+		for (let i = 0; i < numCPUs; i++) {
+			cluster.fork();
+		}
+
+		cluster.on('exit', (worker, code, signal) => {
+			console.log(`worker ${worker.process.pid} died`);
+		});
+	}
+
 	console.log('Start');
 	const pool = await AppDataSource.initialize();
 	console.log('Database connected');
 	console.log('Venom feed started');
 
-	const sharedData: { predefinedTexts: string[]; bannedAddresses: string[]; prebuiltFeedIds: Uint256[] } = {
-		predefinedTexts: [],
-		bannedAddresses: [],
-		prebuiltFeedIds: [
-			GLOBAL_VENOM_FEED_ID,
-			'1000000000000000000000000000000000000000000000000000000000000005' as Uint256,
-			'1000000000000000000000000000000000000000000000000000000000000006' as Uint256,
-			'1000000000000000000000000000000000000000000000000000000000000007' as Uint256,
-			'1000000000000000000000000000000000000000000000000000000000000008' as Uint256,
-			'1000000000000000000000000000000000000000000000000000000000000009' as Uint256,
-			'100000000000000000000000000000000000000000000000000000000000000a' as Uint256,
-			'100000000000000000000000000000000000000000000000000000000000000b' as Uint256,
-			'100000000000000000000000000000000000000000000000000000000000000c' as Uint256,
-			'100000000000000000000000000000000000000000000000000000000000000d' as Uint256,
-			'100000000000000000000000000000000000000000000000000000000000000e' as Uint256,
-			'100000000000000000000000000000000000000000000000000000000000000f' as Uint256,
-			'1000000000000000000000000000000000000000000000000000000000000010' as Uint256,
-		] as Uint256[],
-	};
-	// await doGoodPosts(pool);
 	const { controller } = await init();
-	const updateCache = await startReader(sharedData, Number(env.PORT), pool);
-	await startParser(controller, sharedData, updateCache, env.READ_FEED === 'true');
+	const updateCache = cluster.isPrimary ? async () => {} : await startReader(sharedData, Number(env.PORT), pool);
+	await startParser(controller, sharedData, updateCache, env.READ_FEED === 'true' && cluster.isPrimary);
 }
 
 run();
