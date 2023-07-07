@@ -1,6 +1,8 @@
 import dotenv from 'dotenv';
 const env = dotenv.config().parsed || {};
 
+import 'newrelic';
+
 import cluster from 'node:cluster';
 import { availableParallelism } from 'node:os';
 
