@@ -30,9 +30,9 @@ export const createPostsRouter = async () => {
 		}
 	}
 
-	for (const feedId of feeds) {
-		console.log(`Building cache for ${feedId}`);
-		await updateCache(feedId);
+	for (const feed of feeds) {
+		console.log(`Building cache for ${feed.feedId} (${feed.title})`);
+		await updateCache(feed);
 	}
 
 	asyncTimer(updateAllCaches, 5 * 1000);
