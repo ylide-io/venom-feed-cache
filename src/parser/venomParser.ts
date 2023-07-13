@@ -9,9 +9,11 @@ import { updatePosts } from '../local-db';
 import { EverscaleBlockchainController } from '@ylide/everscale';
 import { processBlockchainPost } from './processBlockchainPost';
 
-const processVenomPost = async (controller: AbstractBlockchainController, feed: FeedEntity, msg: IMessage) => {
+const processVenomPost = async (controller: EverscaleBlockchainController, feed: FeedEntity, msg: IMessage) => {
 	const start = Date.now();
-	const content = await retry(() => controller.retrieveMessageContent(msg));
+	const content = await retry(() =>
+		controller.currentMailer.wrapper.retrieveMessageContent(controller.currentMailer.link, msg),
+	);
 	const end = Date.now();
 	if (end - start > 300) {
 		console.log(`WARN: retrieving message content took ${end - start}ms: `, msg.msgId);
