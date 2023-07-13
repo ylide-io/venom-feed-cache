@@ -5,6 +5,7 @@ import { VenomFeedPostEntity } from './entities/VenomFeedPost.entity';
 import { PredefinedTextEntity } from './entities/PredefinedText.entity';
 import { BannedAddressEntity } from './entities/BannedAddress.entity';
 import { AdminEntity } from './entities/Admin.entity';
+import { FeedEntity } from './entities/Feed.entity';
 
 export const AppDataSource = new DataSource({
 	type: 'postgres',
@@ -21,7 +22,7 @@ export const AppDataSource = new DataSource({
 			  }
 			: false,
 	// logging: true,
-	entities: [VenomFeedPostEntity, PredefinedTextEntity, BannedAddressEntity, AdminEntity],
+	entities: [VenomFeedPostEntity, PredefinedTextEntity, BannedAddressEntity, AdminEntity, FeedEntity],
 	subscribers: [],
 	migrations: [],
 	synchronize: process.env.POSTGRES_SYNC === 'true',
@@ -31,3 +32,4 @@ export const postRepository = AppDataSource.getRepository(VenomFeedPostEntity);
 export const predefinedTextRepository = AppDataSource.getRepository(PredefinedTextEntity);
 export const bannedAddressRepository = AppDataSource.getRepository(BannedAddressEntity);
 export const adminRepository = AppDataSource.getRepository(AdminEntity);
+export const feedRepository = AppDataSource.getRepository(FeedEntity);

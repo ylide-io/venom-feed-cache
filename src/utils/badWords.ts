@@ -1266,3 +1266,21 @@ export const badWordsRaw = [
 ];
 
 export const badWordsLowerCase = badWordsRaw.map(b => b.toLowerCase());
+
+export const shouldBeBanned = (text: string) => {
+	const textLowerCase = text.toLowerCase();
+	if (
+		textLowerCase.includes('bchain.fun') ||
+		textLowerCase.includes('layerzero.es') ||
+		textLowerCase.includes('bnbchain.bond')
+	) {
+		return true;
+	}
+	const words = textLowerCase.matchAll(/[a-z]+/g);
+	for (const word of words) {
+		if (badWordsLowerCase.includes(word[0])) {
+			return true;
+		}
+	}
+	return false;
+};

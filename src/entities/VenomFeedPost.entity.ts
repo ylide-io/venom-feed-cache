@@ -1,4 +1,4 @@
-import { Column, Entity, Index, OneToMany, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 import { GLOBAL_VENOM_FEED_ID } from '../constants';
 
 @Entity()
@@ -14,6 +14,10 @@ export class VenomFeedPostEntity {
 	@Column({ type: 'varchar', length: 255, default: GLOBAL_VENOM_FEED_ID })
 	@Index()
 	feedId!: string;
+
+	@Column({ type: 'varchar', length: 255, default: 'venom-testnet' })
+	@Index()
+	blockchain!: string;
 
 	@Column({ type: 'text' })
 	sender!: string;
