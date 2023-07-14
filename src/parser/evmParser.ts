@@ -5,6 +5,7 @@ import { postRepository } from '../database';
 import { FeedEntity } from '../entities/Feed.entity';
 import { retry } from '../utils/retry';
 import { processBlockchainPost } from './processBlockchainPost';
+import { constructGenericFeedId } from '../utils/copy-to-delete';
 
 const processEvmPost = async (indexerHub: IndexerHub, feed: FeedEntity, msg: IMessage) => {
 	const start = Date.now();
@@ -23,9 +24,8 @@ async function updateEvmFeed(indexerHub: IndexerHub, feed: FeedEntity) {
 	let i = 0;
 	let wasChanged = false;
 
-	// const composedFeedId =
-	// 	composedFeedCache[feed.feedId] || (await controller.getComposedFeedId(feed.feedId as Uint256, 1));
-	// composedFeedCache[feed.feedId] = composedFeedId;
+	const composedFeedId = composedFeedCache[feed.feedId] || constructGenericFeedId(feed.feedId as Uint256);
+	composedFeedCache[feed.feedId] = composedFeedId;
 
 	while (true) {
 		const startHistory = Date.now();
@@ -34,7 +34,7 @@ async function updateEvmFeed(indexerHub: IndexerHub, feed: FeedEntity) {
 				indexerHub.retryingOperation(
 					() =>
 						indexerHub.request('/broadcasts', {
-							feedId: feed.feedId,
+							feedId: composedFeedId,
 							offset: 0,
 							limit: 100,
 						}),
