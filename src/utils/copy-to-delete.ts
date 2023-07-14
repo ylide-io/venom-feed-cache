@@ -9,7 +9,10 @@ export const constructFeedId = (
 	uniqueId: Uint256,
 ) => {
 	const bytes = SmartBuffer.ofHexString(
-		senderAddress.substring(2).toLowerCase() + '0'.repeat(63) + (isPersonal ? '1' : '0') + uniqueId,
+		senderAddress.substring(2).toLowerCase() +
+			'0'.repeat(63) +
+			(isGenericFeed ? '2' : isPersonal ? '1' : '0') +
+			uniqueId,
 	).bytes;
 
 	const composedFeedId = new SmartBuffer(sha256(bytes)).toHexString();
