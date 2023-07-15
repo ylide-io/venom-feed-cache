@@ -53,10 +53,10 @@ async function run() {
 
 	console.log('Caches prepopulated');
 
-	if (!cluster.isPrimary) {
+	if (process.env.ENV === 'local' || !cluster.isPrimary) {
 		await startReader(Number(env.PORT), pool);
 	}
-	if (env.READ_FEED === 'true' && cluster.isPrimary) {
+	if (env.READ_FEED === 'true' && (process.env.ENV === 'local' || cluster.isPrimary)) {
 		await startVenomParser(controller);
 		await startEvmParser();
 	}
