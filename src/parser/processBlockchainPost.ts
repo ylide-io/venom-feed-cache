@@ -7,7 +7,12 @@ import { shouldBeBanned } from '../utils/badWords';
 import { decryptBroadcastContent } from '../utils/decryptBroadcastContent';
 import { isGoodPost } from '../utils/goodWords';
 import { retry } from '../utils/retry';
-import { calcComissionDecimals, calcComissions, isComissionGreaterOrEqualsThan } from '../utils/calcComissions';
+import {
+	calcComissionDecimals,
+	calcComissions,
+	excludeDecimals,
+	isComissionGreaterOrEqualsThan,
+} from '../utils/calcComissions';
 import { DECIMALS } from '../constants';
 
 export const processPostContent = (post: VenomFeedPostEntity, content: IMessageContent) => {
@@ -57,11 +62,14 @@ export const processBlockchainPost = async (
 	post.banned = false;
 	post.isAutobanned = false;
 	try {
+		const decimals = DECIMALS[msg.blockchain] || 0;
+		if (msg.$$meta.extraPayment && typeof msg.$$meta.extraPayment === 'string') {
+			post.extraPayment = excludeDecimals(msg.$$meta.extraPayment, decimals);
+		}
 		const comissions = getFeedComissions(feed.feedId);
 		const comission = calcComissions(msg.blockchain, comissions);
 		if (comission !== '0') {
 			if (msg.$$meta.extraPayment && typeof msg.$$meta.extraPayment === 'string') {
-				const decimals = DECIMALS[msg.blockchain] || 0;
 				const decimalizedComission = calcComissionDecimals(comission, decimals);
 				if (isComissionGreaterOrEqualsThan(msg.$$meta.extraPayment, decimalizedComission)) {
 					post.isComissionValid = true;

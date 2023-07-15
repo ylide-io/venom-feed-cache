@@ -47,6 +47,33 @@ export const calcComissionDecimals = (comission: string, decimals: number): stri
 	}
 };
 
+export const stripNumber = (a: string): string => {
+	if (a.includes('.')) {
+		const [int, frac] = a.split('.');
+		const fracStripped = stripTrailingZeros(frac);
+		if (fracStripped === '0') {
+			return `${stripLeadingZeros(int)}`;
+		} else {
+			return `${stripLeadingZeros(int)}.${fracStripped}`;
+		}
+	} else {
+		return stripLeadingZeros(a);
+	}
+};
+
+export const excludeDecimals = (val: string, decimals: number): string => {
+	val = stripNumber(val);
+	if (val.includes('.')) {
+		throw new Error(`Value ${val} has decimals, but decimals are not allowed`);
+	} else {
+		if (val.length > decimals) {
+			return stripNumber(`${val.slice(0, val.length - decimals)}.${val.slice(val.length - decimals)}`);
+		} else {
+			return stripNumber(`0.${val}${'0'.repeat(decimals - val.length)}`);
+		}
+	}
+};
+
 export const compareInts = (a: string, b: string): number => {
 	if (a === b) {
 		return 0;

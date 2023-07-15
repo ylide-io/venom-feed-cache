@@ -45,4 +45,7 @@ export class VenomFeedPostEntity {
 
 	@Column({ type: 'boolean', default: true, nullable: false })
 	isComissionValid!: boolean;
+
+	@Column({ type: 'double precision', default: 0, nullable: false })
+	extraPayment!: string;
 }
