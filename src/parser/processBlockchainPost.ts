@@ -2,11 +2,13 @@ import { IMessageContent, AbstractBlockchainController, IMessage, IMessageCorrup
 import { postRepository } from '../database';
 import { FeedEntity } from '../entities/Feed.entity';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
-import { predefinedTexts, bannedAddresses } from '../local-db';
+import { predefinedTexts, bannedAddresses, getFeedComissions } from '../local-db';
 import { shouldBeBanned } from '../utils/badWords';
 import { decryptBroadcastContent } from '../utils/decryptBroadcastContent';
 import { isGoodPost } from '../utils/goodWords';
 import { retry } from '../utils/retry';
+import { calcComissionDecimals, calcComissions, isComissionGreaterOrEqualsThan } from '../utils/calcComissions';
+import { DECIMALS } from '../constants';
 
 export const processPostContent = (post: VenomFeedPostEntity, content: IMessageContent) => {
 	post.content = {
@@ -17,6 +19,9 @@ export const processPostContent = (post: VenomFeedPostEntity, content: IMessageC
 	post.contentText = (
 		typeof result.content.content === 'string' ? result.content.content : result.content.content.toString()
 	).trim();
+	if (post.banned) {
+		return;
+	}
 	let isPredefined = post.contentText.trim() === '' || predefinedTexts.some(t => post.contentText === t);
 	if (!isPredefined) {
 		isPredefined = isGoodPost(post.contentText);
@@ -46,9 +51,39 @@ export const processBlockchainPost = async (
 	post.createTimestamp = msg.createdAt;
 	post.sender = msg.senderAddress;
 	post.blockchain = msg.blockchain;
-	console.log('msg.blockchain: ', msg.blockchain);
 	post.banned = false;
 	post.feedId = feed.feedId;
+	post.isComissionValid = true;
+	post.banned = false;
+	post.isAutobanned = false;
+	try {
+		const comissions = getFeedComissions(feed.feedId);
+		const comission = calcComissions(msg.blockchain, comissions);
+		if (comission !== '0') {
+			if (msg.$$meta.extraPayment && typeof msg.$$meta.extraPayment === 'string') {
+				const decimals = DECIMALS[msg.blockchain] || 0;
+				const decimalizedComission = calcComissionDecimals(comission, decimals);
+				if (isComissionGreaterOrEqualsThan(msg.$$meta.extraPayment, decimalizedComission)) {
+					post.isComissionValid = true;
+				} else {
+					post.isComissionValid = false;
+					post.banned = true;
+					post.isAutobanned = true;
+				}
+			} else {
+				post.isComissionValid = false;
+				post.banned = true;
+				post.isAutobanned = true;
+			}
+		} else {
+			post.isComissionValid = true;
+		}
+	} catch (err) {
+		console.log('Error getting feed comissions: ', err);
+		post.isComissionValid = false;
+		post.banned = true;
+		post.isAutobanned = true;
+	}
 	post.meta = {
 		...msg,
 		key: [...msg.key],

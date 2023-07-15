@@ -1,5 +1,5 @@
 import express from 'express';
-import { feeds } from '../local-db/feeds';
+import { feeds, getFeedComissions } from '../local-db/feeds';
 import { FeedEntity } from '../entities/Feed.entity';
 import { feedRepository } from '../database';
 
@@ -96,19 +96,12 @@ export const createFeedsRouter = async () => {
 
 	router.get('/:feedId/comissions', async (req, res) => {
 		const { feedId } = req.params;
-		const feed = feeds.find(f => f.feedId === feedId);
-		if (!feed) {
-			return res.status(404).json({ error: 'Feed not found' });
+		try {
+			const comissions = getFeedComissions(feedId);
+			return res.json(comissions);
+		} catch (error: any) {
+			return res.status(500).json({ error: error?.message });
 		}
-		const comissions = [];
-		let currentFeed: FeedEntity | undefined = feed;
-		while (currentFeed) {
-			if (currentFeed.comissions) {
-				comissions.push(currentFeed.comissions);
-			}
-			currentFeed = feeds.find(f => f.feedId === currentFeed!.parentFeedId);
-		}
-		return res.json(comissions);
 	});
 
 	return { router };

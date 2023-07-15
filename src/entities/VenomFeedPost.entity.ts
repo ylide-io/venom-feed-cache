@@ -42,4 +42,7 @@ export class VenomFeedPostEntity {
 
 	@Column({ type: 'boolean', default: false, nullable: false })
 	isApproved!: boolean;
+
+	@Column({ type: 'boolean', default: true, nullable: false })
+	isComissionValid!: boolean;
 }
