@@ -10,4 +10,5 @@ export const updateFeeds = async () => {
 
 asyncTimer(async () => {
 	await updateFeeds();
+	console.log(`Feeds updated: `, JSON.stringify(feeds, null, 2));
 }, 30 * 1000);
