@@ -69,7 +69,7 @@ export const excludeDecimals = (val: string, decimals: number): string => {
 		if (val.length > decimals) {
 			return stripNumber(`${val.slice(0, val.length - decimals)}.${val.slice(val.length - decimals)}`);
 		} else {
-			return stripNumber(`0.${val}${'0'.repeat(decimals - val.length)}`);
+			return stripNumber(`0.${'0'.repeat(decimals - val.length)}${val}`);
 		}
 	}
 };
