@@ -16,14 +16,25 @@ import type {
 import { processBlockchainPost } from './processBlockchainPost';
 import { EverscaleMailerV8Wrapper } from '@ylide/everscale/lib/contract-wrappers/EverscaleMailerV8Wrapper';
 
-const processTvmPost = async (controller: EverscaleBlockchainController, feed: FeedEntity, msg: IMessage) => {
+const processTvmPost = async (
+	name: string,
+	controller: EverscaleBlockchainController,
+	broadcaster: {
+		link: ITVMMailerContractLink;
+		wrapper:
+			| EverscaleMailerV5Wrapper
+			| EverscaleMailerV6Wrapper
+			| EverscaleMailerV7Wrapper
+			| EverscaleMailerV8Wrapper;
+	},
+	feed: FeedEntity,
+	msg: IMessage,
+) => {
 	const start = Date.now();
-	const content = await retry(() =>
-		controller.currentMailer.wrapper.retrieveMessageContent(controller.currentMailer.link, msg),
-	);
+	const content = await retry(() => broadcaster.wrapper.retrieveMessageContent(broadcaster.link, msg));
 	const end = Date.now();
 	if (end - start > 300) {
-		console.log(`WARN: retrieving message content took ${end - start}ms: `, msg.msgId);
+		console.log(`WARN: ${name} retrieving message content took ${end - start}ms: `, msg.msgId);
 	}
 	return await processBlockchainPost(feed, msg, content);
 };
@@ -80,9 +91,9 @@ async function updateTvmFeed(
 			if (exists) {
 				return wasChanged ? feed : null;
 			}
-			await processTvmPost(controller, feed, msg);
+			await processTvmPost(name, controller, broadcaster, feed, msg);
 			wasChanged = true;
-			console.log(`Saved post #${i++}`);
+			console.log(`${name} Saved post #${i++}`);
 			lastPost = msg;
 		}
 	}
@@ -114,7 +125,7 @@ export const startTvmParser = async (
 			consequentErrors++;
 			console.error(e);
 			if (consequentErrors > 5) {
-				sendTGAlert(`!!!!!! Tvm feed error: ${e.message}`).catch(err => {
+				sendTGAlert(`!!!!!! Tvm feed error: ${name}, ${e.message}`).catch(err => {
 					console.error('TG error', err);
 				});
 			}
