@@ -68,18 +68,18 @@ async function run() {
 					const replacement = venomController.mailers.find(x => x.link.id === 13)!;
 					await startTvmParser('[VNM] ' + replacement.link.address, venomController, replacement);
 				} else {
-					// await startTvmParser('[VNM] ' + broadcaster.link.address, venomController, broadcaster);
+					await startTvmParser('[VNM] ' + broadcaster.link.address, venomController, broadcaster);
 				}
 			}
 		}
-		// for (const broadcaster of everscaleController.broadcasters) {
-		// 	if (
-		// 		broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
-		// 		broadcaster.link.type === TVMMailerContractType.TVMMailerV8
-		// 	) {
-		// 		await startTvmParser('[EVR] ' + broadcaster.link.address, everscaleController, broadcaster);
-		// 	}
-		// }
+		for (const broadcaster of everscaleController.broadcasters) {
+			if (
+				broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
+				broadcaster.link.type === TVMMailerContractType.TVMMailerV8
+			) {
+				await startTvmParser('[EVR] ' + broadcaster.link.address, everscaleController, broadcaster);
+			}
+		}
 		await startEvmParser();
 	}
 }
