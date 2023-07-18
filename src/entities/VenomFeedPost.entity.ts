@@ -48,4 +48,7 @@ export class VenomFeedPostEntity {
 
 	@Column({ type: 'double precision', default: 0, nullable: false })
 	extraPayment!: string;
+
+	@Column({ type: 'varchar', length: 255, default: '', nullable: false })
+	contractAddress!: string;
 }

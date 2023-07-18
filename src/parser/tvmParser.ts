@@ -1,4 +1,4 @@
-import { AbstractBlockchainController, BlockchainSourceType, IMessage, Uint256 } from '@ylide/sdk';
+import { BlockchainSourceType, IMessage, Uint256 } from '@ylide/sdk';
 import { postRepository } from '../database';
 import { sendTGAlert } from '../utils/telegram';
 import { retry } from '../utils/retry';
@@ -6,10 +6,17 @@ import asyncTimer from '../utils/asyncTimer';
 import { feeds } from '../local-db/feeds';
 import { FeedEntity } from '../entities/Feed.entity';
 import { updatePosts } from '../local-db';
-import { EverscaleBlockchainController } from '@ylide/everscale';
+import type {
+	EverscaleBlockchainController,
+	EverscaleMailerV5Wrapper,
+	EverscaleMailerV6Wrapper,
+	EverscaleMailerV7Wrapper,
+	ITVMMailerContractLink,
+} from '@ylide/everscale';
 import { processBlockchainPost } from './processBlockchainPost';
+import { EverscaleMailerV8Wrapper } from '@ylide/everscale/lib/contract-wrappers/EverscaleMailerV8Wrapper';
 
-const processVenomPost = async (controller: EverscaleBlockchainController, feed: FeedEntity, msg: IMessage) => {
+const processTvmPost = async (controller: EverscaleBlockchainController, feed: FeedEntity, msg: IMessage) => {
 	const start = Date.now();
 	const content = await retry(() =>
 		controller.currentMailer.wrapper.retrieveMessageContent(controller.currentMailer.link, msg),
@@ -23,7 +30,19 @@ const processVenomPost = async (controller: EverscaleBlockchainController, feed:
 
 const composedFeedCache: Record<string, Uint256> = {};
 
-async function updateVenomFeed(controller: EverscaleBlockchainController, feed: FeedEntity) {
+async function updateTvmFeed(
+	name: string,
+	controller: EverscaleBlockchainController,
+	broadcaster: {
+		link: ITVMMailerContractLink;
+		wrapper:
+			| EverscaleMailerV5Wrapper
+			| EverscaleMailerV6Wrapper
+			| EverscaleMailerV7Wrapper
+			| EverscaleMailerV8Wrapper;
+	},
+	feed: FeedEntity,
+) {
 	let lastPost: any = null;
 	let i = 0;
 	let wasChanged = false;
@@ -35,8 +54,8 @@ async function updateVenomFeed(controller: EverscaleBlockchainController, feed: 
 	while (true) {
 		const startHistory = Date.now();
 		const history = await retry(() =>
-			controller.currentMailer.wrapper.retrieveHistoryDesc(
-				controller.currentMailer.link,
+			broadcaster.wrapper.retrieveHistoryDesc(
+				broadcaster.link,
 				{
 					feedId: composedFeedId,
 					type: BlockchainSourceType.BROADCAST,
@@ -49,7 +68,7 @@ async function updateVenomFeed(controller: EverscaleBlockchainController, feed: 
 		);
 		const endHistory = Date.now();
 		if (endHistory - startHistory > 300) {
-			console.log(`WARN: retrieving history took ${endHistory - startHistory}ms: `, lastPost === null);
+			console.log(`WARN: ${name} retrieving history took ${endHistory - startHistory}ms: `, lastPost === null);
 		}
 
 		if (history.length === 0) {
@@ -61,7 +80,7 @@ async function updateVenomFeed(controller: EverscaleBlockchainController, feed: 
 			if (exists) {
 				return wasChanged ? feed : null;
 			}
-			await processVenomPost(controller, feed, msg);
+			await processTvmPost(controller, feed, msg);
 			wasChanged = true;
 			console.log(`Saved post #${i++}`);
 			lastPost = msg;
@@ -69,12 +88,25 @@ async function updateVenomFeed(controller: EverscaleBlockchainController, feed: 
 	}
 }
 
-export const startVenomParser = async (controller: EverscaleBlockchainController) => {
+export const startTvmParser = async (
+	name: string,
+	controller: EverscaleBlockchainController,
+	broadcaster: {
+		link: ITVMMailerContractLink;
+		wrapper:
+			| EverscaleMailerV5Wrapper
+			| EverscaleMailerV6Wrapper
+			| EverscaleMailerV7Wrapper
+			| EverscaleMailerV8Wrapper;
+	},
+) => {
 	let consequentErrors = 0;
 
 	const updateAllFeeds = async () => {
 		try {
-			const updatedFeeds = await Promise.all(feeds.map(feed => updateVenomFeed(controller, feed)));
+			const updatedFeeds = await Promise.all(
+				feeds.map(feed => updateTvmFeed(name, controller, broadcaster, feed)),
+			);
 			await Promise.all(updatedFeeds.map(async feed => feed && (await updatePosts(feed))));
 			consequentErrors = 0;
 			console.log(`[${new Date().toISOString()}] Feed updated`);
@@ -82,7 +114,7 @@ export const startVenomParser = async (controller: EverscaleBlockchainController
 			consequentErrors++;
 			console.error(e);
 			if (consequentErrors > 5) {
-				sendTGAlert(`!!!!!! Venom feed error: ${e.message}`).catch(err => {
+				sendTGAlert(`!!!!!! Tvm feed error: ${e.message}`).catch(err => {
 					console.error('TG error', err);
 				});
 			}
@@ -94,5 +126,5 @@ export const startVenomParser = async (controller: EverscaleBlockchainController
 		await updateAllFeeds();
 	}, 5 * 1000);
 
-	console.log('Venom parser started');
+	console.log(`[${new Date().toISOString()}] TVM ${name} parser started`);
 };

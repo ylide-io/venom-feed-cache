@@ -6,15 +6,16 @@ import 'newrelic';
 import cluster from 'node:cluster';
 import { availableParallelism } from 'node:os';
 
-import { init } from './parser/initEverscaleClient';
+import { initTvmControllers } from './parser/initTvmControllers';
 
 import { startReader } from './reader';
 import { AppDataSource } from './database';
-import { startVenomParser } from './parser/venomParser';
+import { startTvmParser } from './parser/tvmParser';
 import { updateBannedAddresses, updateFeeds, updatePredefinedTexts } from './local-db';
 import { sendTGAlert } from './utils/telegram';
 import { startEvmParser } from './parser/evmParser';
 import { prepopulateFeeds } from './utils/prepopulate';
+import { TVMMailerContractType } from '@ylide/everscale';
 
 const numCPUs = availableParallelism();
 
@@ -42,7 +43,7 @@ async function run() {
 	const pool = await AppDataSource.initialize();
 	console.log('Database connected');
 
-	const { controller } = await init();
+	const { venomController, everscaleController } = await initTvmControllers();
 	console.log('Everscale connected');
 
 	await updatePredefinedTexts();
@@ -57,7 +58,28 @@ async function run() {
 		await startReader(Number(env.PORT), pool);
 	}
 	if (env.READ_FEED === 'true' && (process.env.ENV === 'local' || cluster.isPrimary)) {
-		await startVenomParser(controller);
+		for (const broadcaster of venomController.broadcasters) {
+			if (
+				broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
+				broadcaster.link.type === TVMMailerContractType.TVMMailerV8
+			) {
+				if (broadcaster.link.type === TVMMailerContractType.TVMMailerV7 && broadcaster.link.id === 14) {
+					// because I'm an idiot
+					const replacement = venomController.mailers.find(x => x.link.id === 13)!;
+					await startTvmParser('[VNM] ' + replacement.link.address, venomController, replacement);
+				} else {
+					await startTvmParser('[VNM] ' + broadcaster.link.address, venomController, broadcaster);
+				}
+			}
+		}
+		for (const broadcaster of everscaleController.broadcasters) {
+			if (
+				broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
+				broadcaster.link.type === TVMMailerContractType.TVMMailerV8
+			) {
+				await startTvmParser('[EVR] ' + broadcaster.link.address, everscaleController, broadcaster);
+			}
+		}
 		await startEvmParser();
 	}
 }

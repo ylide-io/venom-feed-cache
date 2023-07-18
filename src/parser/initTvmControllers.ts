@@ -14,10 +14,10 @@ const coreDeepCopy: typeof core = {
 
 import { EverscaleBlockchainController } from '@ylide/everscale';
 
-export async function init() {
+export async function initTvmControllers() {
 	Object.assign(core, coreDeepCopy);
 
-	const provider = await EverscaleStandaloneClient.create({
+	const venomProvider = await EverscaleStandaloneClient.create({
 		connection: {
 			id: 1,
 			group: 'mainnet',
@@ -29,14 +29,33 @@ export async function init() {
 		},
 	});
 
-	const controller = new EverscaleBlockchainController({
+	const venomController = new EverscaleBlockchainController({
 		type: 'venom-testnet',
 		endpoints: ['https://gql-testnet.venom.foundation/graphql'],
-		provider,
+		provider: venomProvider,
+		nekotonCore: core,
+	});
+
+	const everscaleProvider = await EverscaleStandaloneClient.create({
+		connection: {
+			id: 1,
+			group: 'mainnet',
+			type: 'graphql',
+			data: {
+				local: false,
+				endpoints: ['https://mainnet.evercloud.dev/695e40eeac6b4e3fa4a11666f6e0d6af/graphql'],
+			},
+		},
+	});
+
+	const everscaleController = new EverscaleBlockchainController({
+		type: 'everscale-mainnet',
+		endpoints: ['https://mainnet.evercloud.dev/695e40eeac6b4e3fa4a11666f6e0d6af/graphql'],
+		provider: everscaleProvider,
 		nekotonCore: core,
 	});
 
 	//
 
-	return { controller };
+	return { venomController, everscaleController };
 }

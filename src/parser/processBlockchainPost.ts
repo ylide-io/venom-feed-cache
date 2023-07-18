@@ -61,6 +61,11 @@ export const processBlockchainPost = async (
 	post.isComissionValid = true;
 	post.banned = false;
 	post.isAutobanned = false;
+	if (post.blockchain === 'everscale' || post.blockchain === 'venom-testnet') {
+		post.contractAddress = msg.$$meta.src;
+	} else {
+		post.contractAddress = msg.$$meta.tx.to;
+	}
 	try {
 		const decimals = DECIMALS[msg.blockchain] || 0;
 		if (msg.$$meta.extraPayment && typeof msg.$$meta.extraPayment === 'string') {

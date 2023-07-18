@@ -5,13 +5,17 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"type": "pwa-node",
+			"type": "node",
 			"request": "launch",
 			"name": "Launch Program",
 			"skipFiles": ["<node_internals>/**"],
 			"program": "${workspaceFolder}/src/index.ts",
 			"preLaunchTask": "tsc: build - tsconfig.json",
-			"outFiles": ["${workspaceFolder}/build/**/*.js"]
+			"outFiles": ["${workspaceFolder}/build/**/*.js"],
+			"env": {
+				"NEW_RELIC_APP_NAME": "test-app",
+				"NEW_RELIC_LICENSE_KEY": "eu01xxc9ca916b6ac17e15fc9ce66928147eNRAL"
+			}
 		}
 	]
 }

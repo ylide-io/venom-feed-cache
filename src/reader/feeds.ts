@@ -3,7 +3,7 @@ import { feeds, getFeedComissions } from '../local-db/feeds';
 import { FeedEntity } from '../entities/Feed.entity';
 import { feedRepository } from '../database';
 
-export const createFeedsRouter = async () => {
+export const createFeedsRouter: () => Promise<{ router: express.Router }> = async () => {
 	const router = express.Router();
 
 	router.get('/', async (req, res) => {

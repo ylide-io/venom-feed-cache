@@ -6,7 +6,7 @@ import { validateBanPost, validateBanAddresses } from '../middlewares/validate';
 import { posts } from '../local-db/posts';
 import { updatePostsInAllFeeds } from '../local-db';
 
-export const createAdminRouter = async () => {
+export const createAdminRouter: () => Promise<{ router: express.Router }> = async () => {
 	const router = express.Router();
 
 	router.post('/ban-posts', validateBanPost, async (req, res) => {

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import express from 'express';
 import { validateAdmin } from '../middlewares/validate';
 
-export const createServiceStatusRouter = async () => {
+export const createServiceStatusRouter: () => Promise<{ router: express.Router }> = async () => {
 	const router = express.Router();
 
 	let status = fs.readFileSync('./status.txt', 'utf-8').trim();

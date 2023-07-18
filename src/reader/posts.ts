@@ -10,7 +10,7 @@ import { postToDTO } from '../types';
 import { validatePostsStatus } from '../middlewares/validate';
 import { posts, updatePosts } from '../local-db/posts';
 
-export const createPostsRouter = async () => {
+export const createPostsRouter: () => Promise<{ router: express.Router }> = async () => {
 	const router = express.Router();
 
 	async function updateCache(feed: FeedEntity) {
