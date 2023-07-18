@@ -82,7 +82,7 @@ export const startEvmParser = async () => {
 			const updatedFeeds = await Promise.all(feeds.map(feed => updateEvmFeed(indexerHub, feed)));
 			await Promise.all(updatedFeeds.map(async feed => feed && (await updatePosts(feed))));
 			consequentErrors = 0;
-			console.log(`[${new Date().toISOString()}] Feed updated`);
+			console.log(`[${new Date().toISOString()}] EVM Feed updated`);
 		} catch (e: any) {
 			consequentErrors++;
 			console.error(e);
