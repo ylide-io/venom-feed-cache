@@ -9,6 +9,7 @@ export interface IVenomFeedPostDTO {
 	meta: any;
 	content: any | null;
 	banned: boolean;
+	blockchain: string;
 	isAdmin: boolean;
 	adminTitle?: string;
 	adminRank?: string;
@@ -25,6 +26,7 @@ export const postToDTO = (post: VenomFeedPostEntity, admins: undefined | AdminEn
 		meta: post.meta,
 		content: post.content,
 		banned: post.banned,
+		blockchain: post.blockchain,
 		isAdmin: !!foundAdmin,
 		adminTitle: foundAdmin?.title,
 		adminRank: foundAdmin?.rank,
