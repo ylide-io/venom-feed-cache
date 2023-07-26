@@ -8,7 +8,7 @@
 		"build": "tsc -p ."
 	},
 	"dependencies": {
-		"@ylide/everscale": "0.8.0-beta.51",
+		"@ylide/everscale": "0.8.0-beta.40",
 		"@ylide/sdk": "0.8.0-beta.17",
 		"@ylide/smart-buffer": "0.0.11",
 		"body-parser": "1.20.2",
