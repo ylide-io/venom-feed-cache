@@ -6,11 +6,14 @@ settings:
 
 dependencies:
   '@ylide/everscale':
-    specifier: 0.8.0-beta.38
-    version: 0.8.0-beta.38
+    specifier: 0.8.0-beta.51
+    version: 0.8.0-beta.51
   '@ylide/sdk':
     specifier: 0.8.0-beta.17
     version: 0.8.0-beta.17
+  '@ylide/smart-buffer':
+    specifier: 0.0.11
+    version: 0.0.11
   body-parser:
     specifier: 1.20.2
     version: 1.20.2
@@ -32,6 +35,9 @@ dependencies:
   express:
     specifier: 4.18.2
     version: 4.18.2
+  ioredis:
+    specifier: ^5.3.2
+    version: 5.3.2
   joi:
     specifier: ^17.9.2
     version: 17.9.2
@@ -52,7 +58,7 @@ dependencies:
     version: 0.1.13
   typeorm:
     specifier: 0.3.16
-    version: 0.3.16(pg@8.11.0)(ts-node@10.9.1)
+    version: 0.3.16(ioredis@5.3.2)(pg@8.11.0)(ts-node@10.9.1)
 
 devDependencies:
   '@types/body-parser':
@@ -653,6 +659,10 @@ packages:
     resolution: {integrity: sha512-foQZKJig7Ob0BMAYBfcJk8d77QtOe7Wo4ox7ff1lQYoNNAb6jwcY1ncdoy2e9wQZzvNy7ODZCYJkK8kzmcAnAg==}
     dependencies:
       '@hapi/hoek': 9.3.0
+    dev: false
+
+  /@ioredis/commands@1.2.0:
+    resolution: {integrity: sha512-Sx1pU8EM64o2BrqNpEO1CNLtKQwyhuXuqyfH7oGKCk+1a33d2r5saW8zNwm3j6BTExtjrv2BxTgzzkMwts6vGg==}
     dev: false
 
   /@jridgewell/resolve-uri@3.1.1:
@@ -1335,20 +1345,33 @@ packages:
     resolution: {integrity: sha512-bYuSNomfn4hu2tPiDN+JZtnzCpSpbJ/PNeulmocDy3xN2X5OkJL65zo6rPZp65cPPhLF9vfT/dgE+RtFRCSxOA==}
     dev: false
 
-  /@ylide/everscale@0.8.0-beta.38:
-    resolution: {integrity: sha512-9IaOsBcDDIpOqQ6eQf6EYXwQs6d4fzSMCCM25vcjkxPAH5s//VkpSWRBK1C5D1Vl4Bq083bgISZN+ZNzCSq1WQ==}
+  /@ylide/everscale@0.8.0-beta.51:
+    resolution: {integrity: sha512-D/DiPvdTPZa6n3FCCyzwXrY3PekIeQYxPb74jhUIOsPxLq3bAJl3V18+Ma0u8OdvN82viibS2zPczaO+nJFWyQ==}
     dependencies:
-      '@ylide/sdk': 0.8.0-beta.17
+      '@ylide/sdk': 0.8.0-beta.25
       '@ylide/smart-buffer': 0.0.11
       everscale-inpage-provider: 0.3.61
       everscale-standalone-client: 2.1.19
-      nekoton-wasm: 1.1.8
+      nekoton-wasm: 1.1.7
     transitivePeerDependencies:
       - encoding
     dev: false
 
   /@ylide/sdk@0.8.0-beta.17:
     resolution: {integrity: sha512-/CNQVz10bbO4TVL9aC8IMBLbfwo8IAB1q2Ul5T5KGaaouPzPLaGP8BubBQXP6rqzBuWd77X6WUL+/adV3KeGWg==}
+    dependencies:
+      '@datastructures-js/binary-search-tree': 5.3.1
+      '@datastructures-js/linked-list': 5.2.5
+      '@ylide/smart-buffer': 0.0.11
+      eventemitter3: 5.0.1
+      idb: 7.1.1
+      js-sha256: 0.9.0
+      pako: 2.1.0
+      tweetnacl: 1.0.3
+    dev: false
+
+  /@ylide/sdk@0.8.0-beta.25:
+    resolution: {integrity: sha512-VZE1xyWqRbN/Vb/fa6CW05gWI6OLo/NrkUufjirOvz0kR0yD2Vd28iURzPRzNyaDZll5x2L+19vur0RFrvLRHw==}
     dependencies:
       '@datastructures-js/binary-search-tree': 5.3.1
       '@datastructures-js/linked-list': 5.2.5
@@ -1618,6 +1641,11 @@ packages:
       wrap-ansi: 7.0.0
     dev: false
 
+  /cluster-key-slot@1.1.2:
+    resolution: {integrity: sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA==}
+    engines: {node: '>=0.10.0'}
+    dev: false
+
   /color-convert@1.9.3:
     resolution: {integrity: sha512-QfAUtd+vFdAtFQcC8CCyYt1fYWxSqAiK2cSD6zDB8N3cpsEBAvRxp9zOGg6G/SHHJYAT88/az/IuDGALsNVbGg==}
     dependencies:
@@ -1764,6 +1792,11 @@ packages:
   /delayed-stream@1.0.0:
     resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
     engines: {node: '>=0.4.0'}
+
+  /denque@2.1.0:
+    resolution: {integrity: sha512-HVQE3AAb/pxF8fQAoiqpvg9i3evqug3hoiwakOyZAwJm+6vZehbkYXZ0l4JxS+I3QxM97v5aaRNhj8v5oBhekw==}
+    engines: {node: '>=0.10'}
+    dev: false
 
   /depd@2.0.0:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
@@ -2133,6 +2166,23 @@ packages:
   /inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
 
+  /ioredis@5.3.2:
+    resolution: {integrity: sha512-1DKMMzlIHM02eBBVOFQ1+AolGjs6+xEcM4PDL7NqOS6szq7H9jSaEkIUH6/a5Hl241LzW6JLSiAbNvTQjUupUA==}
+    engines: {node: '>=12.22.0'}
+    dependencies:
+      '@ioredis/commands': 1.2.0
+      cluster-key-slot: 1.1.2
+      debug: 4.3.4
+      denque: 2.1.0
+      lodash.defaults: 4.2.0
+      lodash.isarguments: 3.1.0
+      redis-errors: 1.2.0
+      redis-parser: 3.0.0
+      standard-as-callback: 2.1.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
   /ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
@@ -2224,6 +2274,14 @@ packages:
 
   /lodash.camelcase@4.3.0:
     resolution: {integrity: sha512-TwuEnCnxbc3rAvhf/LbG7tJUDzhqXyFnv3dtzLOPgCG/hODL7WFnsbwktkD7yUV0RrreP/l1PALq/YSg6VvjlA==}
+    dev: false
+
+  /lodash.defaults@4.2.0:
+    resolution: {integrity: sha512-qjxPLHd3r5DnsdGacqOMU6pb/avJzdh9tFX2ymgoZE27BmjXrNy/y4LoaiTeAb+O3gL8AfpJGtqfX/ae2leYYQ==}
+    dev: false
+
+  /lodash.isarguments@3.1.0:
+    resolution: {integrity: sha512-chi4NHZlZqZD18a0imDHnZPrDeBbTtVN7GXMwuGdRH9qotxAjYs3aVLKc7zNOG9eddR5Ksd8rvFEBc9SsggPpg==}
     dev: false
 
   /lodash@4.17.21:
@@ -2358,12 +2416,17 @@ packages:
 
   /nan@2.17.0:
     resolution: {integrity: sha512-2ZTgtl0nJsO0KQCjEpxcIr5D+Yv90plTitZt9JBfQvVJDS5seMl3FOvsh3+9CoYWXf/1l5OaZzzF6nDm4cagaQ==}
+    requiresBuild: true
     dev: false
     optional: true
 
   /negotiator@0.6.3:
     resolution: {integrity: sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==}
     engines: {node: '>= 0.6'}
+    dev: false
+
+  /nekoton-wasm@1.1.7:
+    resolution: {integrity: sha512-9xoKoTzqKGowauP06Lph2GPO7WnPrNIhPWRpu29FDRp/wm+3psEW5tAQJNCdjAcF6KBVaZwK91iGxV7d84FrlA==}
     dev: false
 
   /nekoton-wasm@1.1.8:
@@ -2416,6 +2479,7 @@ packages:
   /node-gyp-build@4.6.0:
     resolution: {integrity: sha512-NTZVKn9IylLwUzaKjkas1e4u2DLNcV4rdYagA4PWdPwW87Bi7z+BznyKSRwS/761tV/lzCGXplWsiaMjLqP2zQ==}
     hasBin: true
+    requiresBuild: true
     dev: false
     optional: true
 
@@ -2676,6 +2740,18 @@ packages:
       util-deprecate: 1.0.2
     dev: false
 
+  /redis-errors@1.2.0:
+    resolution: {integrity: sha512-1qny3OExCf0UvUV/5wpYKf2YwPcOqXzkwKKSmKHiE6ZMQs5heeE/c8eXK+PNllPvmjgAbfnsbpkGZWy8cBpn9w==}
+    engines: {node: '>=4'}
+    dev: false
+
+  /redis-parser@3.0.0:
+    resolution: {integrity: sha512-DJnGAeenTdpMEH6uAJRK/uiyEIH9WVsUmoLwzudwGJUwZPp80PDBWPHXSAGNPwNvIXAbe7MSUB1zQFugFml66A==}
+    engines: {node: '>=4'}
+    dependencies:
+      redis-errors: 1.2.0
+    dev: false
+
   /reflect-metadata@0.1.13:
     resolution: {integrity: sha512-Ts1Y/anZELhSsjMcU605fU9RE4Oi3p5ORujwbIKXfWa+0Zxs510Qrmrce5/Jowq3cHSZSJqBjypxmHarc+vEWg==}
     dev: false
@@ -2805,6 +2881,10 @@ packages:
   /sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
     dev: true
+
+  /standard-as-callback@2.1.0:
+    resolution: {integrity: sha512-qoRRSyROncaz1z0mvYqIE4lCd9p2R90i6GxW3uZv5ucSu8tU7B5HXUP1gG8pVZsYNVaXjk8ClXHPttLyxAL48A==}
+    dev: false
 
   /statuses@2.0.1:
     resolution: {integrity: sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==}
@@ -3042,7 +3122,7 @@ packages:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
     dev: false
 
-  /typeorm@0.3.16(pg@8.11.0)(ts-node@10.9.1):
+  /typeorm@0.3.16(ioredis@5.3.2)(pg@8.11.0)(ts-node@10.9.1):
     resolution: {integrity: sha512-wJ4Qy1oqRKNDdZiBTTaVMqwo/XxC52Q7uNPTjltPgLhvIW173bL6Iad0lhptMOsFlpixFPaUu3PNziaRBwX2Zw==}
     engines: {node: '>= 12.9.0'}
     hasBin: true
@@ -3109,6 +3189,7 @@ packages:
       debug: 4.3.4
       dotenv: 16.1.4
       glob: 8.1.0
+      ioredis: 5.3.2
       mkdirp: 2.1.6
       pg: 8.11.0
       reflect-metadata: 0.1.13

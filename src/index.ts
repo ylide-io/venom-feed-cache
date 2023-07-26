@@ -9,7 +9,7 @@ import { availableParallelism } from 'node:os';
 import { initTvmControllers } from './parser/initTvmControllers';
 
 import { startReader } from './reader';
-import { AppDataSource } from './database';
+import { AppDataSource, createMessageBus } from './database';
 import { startTvmParser } from './parser/tvmParser';
 import { updateBannedAddresses, updateFeeds, updatePredefinedTexts } from './local-db';
 import { sendTGAlert } from './utils/telegram';
@@ -58,6 +58,7 @@ async function run() {
 		await startReader(Number(env.PORT), pool);
 	}
 	if (env.READ_FEED === 'true' && (process.env.ENV === 'local' || cluster.isPrimary)) {
+		const { redis } = await createMessageBus(env);
 		for (const broadcaster of venomController.broadcasters) {
 			if (
 				broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
@@ -66,9 +67,9 @@ async function run() {
 				if (broadcaster.link.type === TVMMailerContractType.TVMMailerV7 && broadcaster.link.id === 14) {
 					// because I'm an idiot
 					const replacement = venomController.mailers.find(x => x.link.id === 13)!;
-					await startTvmParser('[VNM] ' + replacement.link.address, venomController, replacement);
+					await startTvmParser('[VNM] ' + replacement.link.address, redis, venomController, replacement);
 				} else {
-					await startTvmParser('[VNM] ' + broadcaster.link.address, venomController, broadcaster);
+					await startTvmParser('[VNM] ' + broadcaster.link.address, redis, venomController, broadcaster);
 				}
 			}
 		}
@@ -77,10 +78,10 @@ async function run() {
 				broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
 				broadcaster.link.type === TVMMailerContractType.TVMMailerV8
 			) {
-				await startTvmParser('[EVR] ' + broadcaster.link.address, everscaleController, broadcaster);
+				await startTvmParser('[EVR] ' + broadcaster.link.address, redis, everscaleController, broadcaster);
 			}
 		}
-		await startEvmParser();
+		await startEvmParser(redis);
 	}
 }
 

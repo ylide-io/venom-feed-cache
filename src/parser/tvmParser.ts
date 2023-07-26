@@ -15,9 +15,11 @@ import type {
 } from '@ylide/everscale';
 import { processBlockchainPost } from './processBlockchainPost';
 import { EverscaleMailerV8Wrapper } from '@ylide/everscale/lib/contract-wrappers/EverscaleMailerV8Wrapper';
+import { Redis } from 'ioredis';
 
 const processTvmPost = async (
 	name: string,
+	redis: Redis,
 	controller: EverscaleBlockchainController,
 	broadcaster: {
 		link: ITVMMailerContractLink;
@@ -36,13 +38,14 @@ const processTvmPost = async (
 	if (end - start > 300) {
 		console.log(`WARN: ${name} retrieving message content took ${end - start}ms: `, msg.msgId);
 	}
-	return await processBlockchainPost(feed, msg, content);
+	return await processBlockchainPost(redis, feed, msg, content);
 };
 
 const composedFeedCache: Record<string, Uint256> = {};
 
 async function updateTvmFeed(
 	name: string,
+	redis: Redis,
 	controller: EverscaleBlockchainController,
 	broadcaster: {
 		link: ITVMMailerContractLink;
@@ -91,7 +94,7 @@ async function updateTvmFeed(
 			if (exists) {
 				return wasChanged ? feed : null;
 			}
-			await processTvmPost(name, controller, broadcaster, feed, msg);
+			await processTvmPost(name, redis, controller, broadcaster, feed, msg);
 			wasChanged = true;
 			console.log(`${name} Saved post #${i++}`);
 			lastPost = msg;
@@ -101,6 +104,7 @@ async function updateTvmFeed(
 
 export const startTvmParser = async (
 	name: string,
+	redis: Redis,
 	controller: EverscaleBlockchainController,
 	broadcaster: {
 		link: ITVMMailerContractLink;
@@ -116,7 +120,7 @@ export const startTvmParser = async (
 	const updateAllFeeds = async () => {
 		try {
 			const updatedFeeds = await Promise.all(
-				feeds.map(feed => updateTvmFeed(name, controller, broadcaster, feed)),
+				feeds.map(feed => updateTvmFeed(name, redis, controller, broadcaster, feed)),
 			);
 			await Promise.all(updatedFeeds.map(async feed => feed && (await updatePosts(feed))));
 			consequentErrors = 0;

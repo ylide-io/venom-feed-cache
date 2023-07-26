@@ -6,20 +6,21 @@ import { FeedEntity } from '../entities/Feed.entity';
 import { retry } from '../utils/retry';
 import { processBlockchainPost } from './processBlockchainPost';
 import { constructGenericFeedId } from '../utils/copy-to-delete';
+import Redis from 'ioredis';
 
-const processEvmPost = async (indexerHub: IndexerHub, feed: FeedEntity, msg: IMessage) => {
+const processEvmPost = async (indexerHub: IndexerHub, redis: Redis, feed: FeedEntity, msg: IMessage) => {
 	const start = Date.now();
 	const content = await retry(() => indexerHub.requestContent(msg));
 	const end = Date.now();
 	if (end - start > 300) {
 		console.log(`WARN: retrieving message content took ${end - start}ms: `, msg.msgId);
 	}
-	return await processBlockchainPost(feed, msg, content);
+	return await processBlockchainPost(redis, feed, msg, content);
 };
 
 const composedFeedCache: Record<string, Uint256> = {};
 
-async function updateEvmFeed(indexerHub: IndexerHub, feed: FeedEntity) {
+async function updateEvmFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEntity) {
 	let lastPost: any = null;
 	let i = 0;
 	let wasChanged = false;
@@ -65,7 +66,7 @@ async function updateEvmFeed(indexerHub: IndexerHub, feed: FeedEntity) {
 			if (exists) {
 				return wasChanged ? feed : null;
 			}
-			await processEvmPost(indexerHub, feed, msg);
+			await processEvmPost(indexerHub, redis, feed, msg);
 			wasChanged = true;
 			console.log(`Saved post #${i++}`);
 			lastPost = msg;
@@ -73,13 +74,13 @@ async function updateEvmFeed(indexerHub: IndexerHub, feed: FeedEntity) {
 	}
 }
 
-export const startEvmParser = async () => {
+export const startEvmParser = async (redis: Redis) => {
 	const indexerHub = new IndexerHub();
 	let consequentErrors = 0;
 
 	const updateAllFeeds = async () => {
 		try {
-			const updatedFeeds = await Promise.all(feeds.map(feed => updateEvmFeed(indexerHub, feed)));
+			const updatedFeeds = await Promise.all(feeds.map(feed => updateEvmFeed(indexerHub, redis, feed)));
 			await Promise.all(updatedFeeds.map(async feed => feed && (await updatePosts(feed))));
 			consequentErrors = 0;
 			console.log(`[${new Date().toISOString()}] EVM Feed updated`);

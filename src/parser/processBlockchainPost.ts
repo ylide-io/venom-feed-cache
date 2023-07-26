@@ -14,6 +14,7 @@ import {
 	isComissionGreaterOrEqualsThan,
 } from '../utils/calcComissions';
 import { DECIMALS } from '../constants';
+import Redis from 'ioredis';
 
 export const processPostContent = (post: VenomFeedPostEntity, content: IMessageContent) => {
 	post.content = {
@@ -47,6 +48,7 @@ export const processPostContent = (post: VenomFeedPostEntity, content: IMessageC
 };
 
 export const processBlockchainPost = async (
+	redis: Redis,
 	feed: FeedEntity,
 	msg: IMessage,
 	content: IMessageContent | IMessageCorruptedContent | null,
@@ -114,6 +116,36 @@ export const processBlockchainPost = async (
 		post.contentText = 'corrupted';
 	} else {
 		processPostContent(post, content);
+	}
+	if (!post.banned) {
+		try {
+			// <reply-to id="yA05OswBQayIBMkQfGKDxa51udwKxdQoymRUpuBpKp5mmg==" />yes, cool
+			if (post.contentText && post.contentText.includes('<reply-to id="')) {
+				const msgId = post.contentText.split('<reply-to id="')[1].split('"')[0];
+				if (msgId) {
+					postRepository
+						.findOne({ where: { id: msgId } })
+						.then(replyToPost => {
+							if (replyToPost) {
+								void redis.publish(
+									'ylide-broadcast-replies',
+									JSON.stringify({
+										data: {
+											originalPost: replyToPost,
+											replyPost: post,
+										},
+									}),
+								);
+							}
+						})
+						.catch(err => {
+							// do nothing
+						});
+				}
+			}
+		} catch (err) {
+			// do nothing
+		}
 	}
 	await postRepository.save(post);
 };

@@ -1,11 +1,28 @@
-import { DataSource } from 'typeorm';
 import fs from 'fs';
+//
+import { DataSource } from 'typeorm';
+import { DotenvParseOutput } from 'dotenv';
+import { Redis } from 'ioredis';
 //
 import { VenomFeedPostEntity } from './entities/VenomFeedPost.entity';
 import { PredefinedTextEntity } from './entities/PredefinedText.entity';
 import { BannedAddressEntity } from './entities/BannedAddress.entity';
 import { AdminEntity } from './entities/Admin.entity';
 import { FeedEntity } from './entities/Feed.entity';
+
+export const createMessageBus = async (env: DotenvParseOutput) => {
+	const redis = new Redis({
+		tls: {
+			port: Number(env.REDIS_PORT), // Redis port
+			host: env.REDIS_HOST, // Redis host
+		},
+		username: env.REDIS_USER, // needs Redis >= 6
+		password: env.REDIS_PASS,
+		db: Number(env.REDIS_NAME), // Defaults to 0
+	});
+
+	return { redis };
+};
 
 export const AppDataSource = new DataSource({
 	type: 'postgres',
