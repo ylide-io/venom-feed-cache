@@ -15,7 +15,7 @@ import { updateBannedAddresses, updateFeeds, updatePredefinedTexts } from './loc
 import { sendTGAlert } from './utils/telegram';
 import { startEvmParser } from './parser/evmParser';
 import { prepopulateFeeds } from './utils/prepopulate';
-import { EverscaleBlockchainController, TVMMailerContractType } from '@ylide/everscale';
+import { TVMMailerContractType } from '@ylide/everscale';
 
 const numCPUs = availableParallelism();
 
