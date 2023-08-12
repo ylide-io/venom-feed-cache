@@ -15,7 +15,7 @@ import { updateBannedAddresses, updateFeeds, updatePredefinedTexts } from './loc
 import { sendTGAlert } from './utils/telegram';
 import { startEvmParser } from './parser/evmParser';
 import { prepopulateFeeds } from './utils/prepopulate';
-import { TVMMailerContractType } from '@ylide/everscale';
+import { EverscaleBlockchainController, TVMMailerContractType } from '@ylide/everscale';
 
 const numCPUs = availableParallelism();
 
@@ -59,6 +59,7 @@ async function run() {
 	}
 	if (env.READ_FEED === 'true' && (process.env.ENV === 'local' || cluster.isPrimary)) {
 		const { redis } = await createMessageBus(env);
+		const toCrawl: any[] = [];
 		for (const broadcaster of venomController.broadcasters) {
 			if (
 				broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
@@ -67,9 +68,17 @@ async function run() {
 				if (broadcaster.link.type === TVMMailerContractType.TVMMailerV7 && broadcaster.link.id === 14) {
 					// because I'm an idiot
 					const replacement = venomController.mailers.find(x => x.link.id === 13)!;
-					await startTvmParser('[VNM] ' + replacement.link.address, redis, venomController, replacement);
+					toCrawl.push({
+						name: '[VNM] ' + replacement.link.address,
+						controller: venomController,
+						broadcaster: replacement,
+					});
 				} else {
-					await startTvmParser('[VNM] ' + broadcaster.link.address, redis, venomController, broadcaster);
+					toCrawl.push({
+						name: '[VNM] ' + broadcaster.link.address,
+						controller: venomController,
+						broadcaster: broadcaster,
+					});
 				}
 			}
 		}
@@ -78,8 +87,19 @@ async function run() {
 				broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
 				broadcaster.link.type === TVMMailerContractType.TVMMailerV8
 			) {
-				await startTvmParser('[EVR] ' + broadcaster.link.address, redis, everscaleController, broadcaster);
+				toCrawl.push({
+					name: '[EVR] ' + broadcaster.link.address,
+					controller: venomController,
+					broadcaster: broadcaster,
+				});
 			}
+		}
+		console.log(
+			'To crawl: ',
+			toCrawl.map(x => x.name),
+		);
+		for (const { name, controller, broadcaster } of toCrawl) {
+			await startTvmParser(name, redis, controller, broadcaster);
 		}
 		await startEvmParser(redis);
 	}
