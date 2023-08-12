@@ -20,6 +20,28 @@ const processEvmPost = async (indexerHub: IndexerHub, redis: Redis, feed: FeedEn
 
 const composedFeedCache: Record<string, Uint256> = {};
 
+const idxRequest = async (url: string, body: any, timeout = 5000) => {
+	const controller = new AbortController();
+	setTimeout(() => controller.abort(), timeout);
+
+	const response = await fetch(`https://idx3.ylide.io${url}`, {
+		method: 'POST',
+		body: JSON.stringify(body),
+		headers: {
+			'Content-Type': 'text/plain',
+		},
+		signal: controller.signal,
+	});
+
+	const responseBody = await response.json();
+
+	if (responseBody.result) {
+		return responseBody.data;
+	} else {
+		throw Error(responseBody.error || 'Response error');
+	}
+};
+
 async function updateEvmFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEntity) {
 	let lastPost: any = null;
 	let i = 0;
@@ -34,11 +56,15 @@ async function updateEvmFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEnt
 			() =>
 				indexerHub.retryingOperation(
 					() =>
-						indexerHub.request('/broadcasts', {
-							feedId: composedFeedId,
-							offset: 0,
-							limit: 100,
-						}),
+						idxRequest(
+							'/broadcasts',
+							{
+								feedId: composedFeedId,
+								offset: 0,
+								limit: 100,
+							},
+							5000,
+						),
 					() => {
 						throw new Error('No fallback for indexer request');
 					},
