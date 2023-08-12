@@ -1,3 +1,5 @@
+import { inspect } from 'util';
+
 export async function retry<T>(callback: () => Promise<T>, maxRetries: number = 10): Promise<T> {
 	let retries = 0;
 	while (retries < maxRetries) {
@@ -5,6 +7,7 @@ export async function retry<T>(callback: () => Promise<T>, maxRetries: number = 
 			return await callback();
 		} catch (err) {
 			console.error(err);
+			console.error(inspect(err, true, 10, true));
 			retries++;
 		}
 	}

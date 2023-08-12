@@ -6,14 +6,14 @@ settings:
 
 dependencies:
   '@ylide/everscale':
-    specifier: 0.8.0-beta.40
-    version: 0.8.0-beta.40
+    specifier: 0.9.0-beta.4
+    version: 0.9.0-beta.4
   '@ylide/sdk':
-    specifier: 0.8.0-beta.17
-    version: 0.8.0-beta.17
+    specifier: 0.9.0-beta.2
+    version: 0.9.0-beta.2
   '@ylide/smart-buffer':
-    specifier: 0.0.11
-    version: 0.0.11
+    specifier: 0.0.17
+    version: 0.0.17
   body-parser:
     specifier: 1.20.2
     version: 1.20.2
@@ -1345,24 +1345,24 @@ packages:
     resolution: {integrity: sha512-bYuSNomfn4hu2tPiDN+JZtnzCpSpbJ/PNeulmocDy3xN2X5OkJL65zo6rPZp65cPPhLF9vfT/dgE+RtFRCSxOA==}
     dev: false
 
-  /@ylide/everscale@0.8.0-beta.40:
-    resolution: {integrity: sha512-mrKqwXgZJSb5wZMG3rvG13qLxduJ5SqBzWSjSKS+F24Qw7u2C9YVX4dsviNTWk6tAfXR51TdS5e8yxFODv7QdQ==}
+  /@ylide/everscale@0.9.0-beta.4:
+    resolution: {integrity: sha512-8fNcNEn3rQrXDuF3C8boE0ycv9JIDP3MfXWTdXjuApkVnBLVeFfXNnkn9BY2F/L7NJC4SloUUyiUtZrWEk94UQ==}
     dependencies:
-      '@ylide/sdk': 0.8.0-beta.17
-      '@ylide/smart-buffer': 0.0.11
+      '@ylide/sdk': 0.9.0-beta.2
+      '@ylide/smart-buffer': 0.0.17
       everscale-inpage-provider: 0.3.61
-      everscale-standalone-client: 2.1.19
-      nekoton-wasm: 1.1.7
+      everscale-standalone-client: 2.1.21
+      nekoton-wasm: 1.2.0
     transitivePeerDependencies:
       - encoding
     dev: false
 
-  /@ylide/sdk@0.8.0-beta.17:
-    resolution: {integrity: sha512-/CNQVz10bbO4TVL9aC8IMBLbfwo8IAB1q2Ul5T5KGaaouPzPLaGP8BubBQXP6rqzBuWd77X6WUL+/adV3KeGWg==}
+  /@ylide/sdk@0.9.0-beta.2:
+    resolution: {integrity: sha512-iY1nNNjY0o8Vvm+4MKHlx6fEh6NU5DtmphbqA3X27B+A7hBCBOLTHOUpv8DWaNFxS8IlHEWM3G7XIvC3SemHYw==}
     dependencies:
       '@datastructures-js/binary-search-tree': 5.3.1
       '@datastructures-js/linked-list': 5.2.5
-      '@ylide/smart-buffer': 0.0.11
+      '@ylide/smart-buffer': 0.0.17
       eventemitter3: 5.0.1
       idb: 7.1.1
       js-sha256: 0.9.0
@@ -1370,8 +1370,8 @@ packages:
       tweetnacl: 1.0.3
     dev: false
 
-  /@ylide/smart-buffer@0.0.11:
-    resolution: {integrity: sha512-5o7sCNGhkmxlZo/89Aw+RdspcskQtt6t8ADU3gSlylalCn7l9ZVAeeSyMEUwWObjiyWF2yjyAt51UyWHa0QjLQ==}
+  /@ylide/smart-buffer@0.0.17:
+    resolution: {integrity: sha512-qhlw+SwxV5s94BbxLW51EKbTXGJ1ZD29VBvAkYXBEkni72ocG6BwOzZm6yryWl1WjysCSsBPBzPJ5YV7Rc6kYw==}
     dev: false
 
   /accepts@1.3.8:
@@ -1864,6 +1864,20 @@ packages:
       everscale-inpage-provider: 0.3.61
       fast-safe-stringify: 2.1.1
       nekoton-wasm: 1.1.8
+      node-fetch: 2.6.11
+    transitivePeerDependencies:
+      - encoding
+    dev: false
+
+  /everscale-standalone-client@2.1.21:
+    resolution: {integrity: sha512-WIm4bbF1E5Dw8T3hSdDnIBJOQv3+13btDoH2pDjtrvdEPyqtFFbSQ3cxY0PMvBowdUPm2uRYPs8c2u5SOM1YlQ==}
+    dependencies:
+      '@broxus/await-semaphore': 0.1.5
+      bignumber.js: 9.1.1
+      events: 3.3.0
+      everscale-inpage-provider: 0.3.61
+      fast-safe-stringify: 2.1.1
+      nekoton-wasm: 1.2.0
       node-fetch: 2.6.11
     transitivePeerDependencies:
       - encoding
@@ -2412,12 +2426,12 @@ packages:
     engines: {node: '>= 0.6'}
     dev: false
 
-  /nekoton-wasm@1.1.7:
-    resolution: {integrity: sha512-9xoKoTzqKGowauP06Lph2GPO7WnPrNIhPWRpu29FDRp/wm+3psEW5tAQJNCdjAcF6KBVaZwK91iGxV7d84FrlA==}
-    dev: false
-
   /nekoton-wasm@1.1.8:
     resolution: {integrity: sha512-wFuxsPAB4Tj31glTKQKcgWmgCvS7R+FhjIlRkR4DU64GnlAsoJW1F/YMhBZiO7P22Q7ymETi0jUMLgwqP5NVhA==}
+    dev: false
+
+  /nekoton-wasm@1.2.0:
+    resolution: {integrity: sha512-qbPrue8KqVjZ2NDOQCN8NpV5nt9AT5oI8lHAz5Zdb/a1ze5DWi9YMv0BjgTzseO35VP9QybQECuQDaUNGNqhWA==}
     dev: false
 
   /newrelic@10.4.0:
