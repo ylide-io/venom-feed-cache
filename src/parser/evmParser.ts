@@ -1,12 +1,13 @@
 import { IMessage, IndexerHub, Uint256, asyncTimer } from '@ylide/sdk';
+import Redis from 'ioredis';
+
 import { feeds, updatePosts } from '../local-db';
 import { sendTGAlert } from '../utils/telegram';
 import { postRepository } from '../database';
 import { FeedEntity } from '../entities/Feed.entity';
 import { retry } from '../utils/retry';
 import { processBlockchainPost } from './processBlockchainPost';
-import { constructGenericFeedId } from '../utils/copy-to-delete';
-import Redis from 'ioredis';
+import { constructGenericEvmFeedId, constructGenericTvmFeedId } from '../utils/copy-to-delete';
 
 const processEvmPost = async (indexerHub: IndexerHub, redis: Redis, feed: FeedEntity, msg: IMessage) => {
 	const start = Date.now();
@@ -18,7 +19,7 @@ const processEvmPost = async (indexerHub: IndexerHub, redis: Redis, feed: FeedEn
 	return await processBlockchainPost(redis, feed, msg, content);
 };
 
-const composedFeedCache: Record<string, Uint256> = {};
+const tvmComposedFeedCache: Record<string, Uint256> = {};
 
 const idxRequest = async (url: string, body: any, timeout = 5000) => {
 	const controller = new AbortController();
@@ -47,8 +48,8 @@ async function updateEvmFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEnt
 	let i = 0;
 	let wasChanged = false;
 
-	const composedFeedId = composedFeedCache[feed.feedId] || constructGenericFeedId(feed.feedId as Uint256);
-	composedFeedCache[feed.feedId] = composedFeedId;
+	const evmComposedFeedId = constructGenericEvmFeedId(feed.feedId as Uint256);
+	const tvmComposedFeedId = constructGenericTvmFeedId(feed.feedId as Uint256, 1);
 
 	while (true) {
 		const startHistory = Date.now();
@@ -59,7 +60,7 @@ async function updateEvmFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEnt
 						idxRequest(
 							'/broadcasts',
 							{
-								feedId: composedFeedId,
+								feedId: [evmComposedFeedId, tvmComposedFeedId],
 								offset: 0,
 								limit: 100,
 							},
@@ -106,8 +107,8 @@ export const startEvmParser = async (redis: Redis) => {
 
 	const updateAllFeeds = async () => {
 		try {
-			const updatedFeeds = await Promise.all(feeds.map(feed => updateEvmFeed(indexerHub, redis, feed)));
-			await Promise.all(updatedFeeds.map(async feed => feed && (await updatePosts(feed))));
+			const updatedEvmFeeds = await Promise.all(feeds.map(feed => updateEvmFeed(indexerHub, redis, feed)));
+			await Promise.all(updatedEvmFeeds.map(async feed => feed && (await updatePosts(feed))));
 			consequentErrors = 0;
 			console.log(`[${new Date().toISOString()}] EVM Feed updated`);
 		} catch (e: any) {
