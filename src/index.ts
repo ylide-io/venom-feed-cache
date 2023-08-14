@@ -59,48 +59,48 @@ async function run() {
 	}
 	if (env.READ_FEED === 'true' && (process.env.ENV === 'local' || cluster.isPrimary)) {
 		const { redis } = await createMessageBus(env);
-		const toCrawl: any[] = [];
-		for (const broadcaster of venomController.broadcasters) {
-			if (
-				broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
-				broadcaster.link.type === TVMMailerContractType.TVMMailerV8
-			) {
-				if (broadcaster.link.type === TVMMailerContractType.TVMMailerV7 && broadcaster.link.id === 14) {
-					// because I'm an idiot
-					const replacement = venomController.mailers.find(x => x.link.id === 13)!;
-					toCrawl.push({
-						name: '[VNM] ' + replacement.link.address,
-						controller: venomController,
-						broadcaster: replacement,
-					});
-				} else {
-					toCrawl.push({
-						name: '[VNM] ' + broadcaster.link.address,
-						controller: venomController,
-						broadcaster: broadcaster,
-					});
-				}
-			}
-		}
-		for (const broadcaster of everscaleController.broadcasters) {
-			if (
-				broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
-				broadcaster.link.type === TVMMailerContractType.TVMMailerV8
-			) {
-				toCrawl.push({
-					name: '[EVR] ' + broadcaster.link.address,
-					controller: venomController,
-					broadcaster: broadcaster,
-				});
-			}
-		}
-		console.log(
-			'To crawl: ',
-			toCrawl.map(x => x.name),
-		);
-		for (const { name, controller, broadcaster } of toCrawl) {
-			await startTvmParser(name, redis, controller, broadcaster);
-		}
+		// const toCrawl: any[] = [];
+		// for (const broadcaster of venomController.broadcasters) {
+		// 	if (
+		// 		broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
+		// 		broadcaster.link.type === TVMMailerContractType.TVMMailerV8
+		// 	) {
+		// 		if (broadcaster.link.type === TVMMailerContractType.TVMMailerV7 && broadcaster.link.id === 14) {
+		// 			// because I'm an idiot
+		// 			const replacement = venomController.mailers.find(x => x.link.id === 13)!;
+		// 			toCrawl.push({
+		// 				name: '[VNM] ' + replacement.link.address,
+		// 				controller: venomController,
+		// 				broadcaster: replacement,
+		// 			});
+		// 		} else {
+		// 			toCrawl.push({
+		// 				name: '[VNM] ' + broadcaster.link.address,
+		// 				controller: venomController,
+		// 				broadcaster: broadcaster,
+		// 			});
+		// 		}
+		// 	}
+		// }
+		// for (const broadcaster of everscaleController.broadcasters) {
+		// 	if (
+		// 		broadcaster.link.type === TVMMailerContractType.TVMMailerV7 ||
+		// 		broadcaster.link.type === TVMMailerContractType.TVMMailerV8
+		// 	) {
+		// 		toCrawl.push({
+		// 			name: '[EVR] ' + broadcaster.link.address,
+		// 			controller: venomController,
+		// 			broadcaster: broadcaster,
+		// 		});
+		// 	}
+		// }
+		// console.log(
+		// 	'To crawl: ',
+		// 	toCrawl.map(x => x.name),
+		// );
+		// for (const { name, controller, broadcaster } of toCrawl) {
+		// 	await startTvmParser(name, redis, controller, broadcaster);
+		// }
 		await startEvmParser(redis);
 	}
 }

@@ -24,7 +24,7 @@ const idxRequest = async (url: string, body: any, timeout = 5000) => {
 	const controller = new AbortController();
 	setTimeout(() => controller.abort(), timeout);
 
-	const response = await fetch(`https://idx3.ylide.io${url}`, {
+	const response = await fetch(`http://67.207.78.205${url}`, {
 		method: 'POST',
 		body: JSON.stringify(body),
 		headers: {
