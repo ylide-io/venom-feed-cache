@@ -41,7 +41,7 @@ const idxRequest = async (url: string, body: any, timeout = 5000) => {
 	}
 };
 
-async function updateEvmFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEntity) {
+async function updateFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEntity) {
 	let lastPost: any = null;
 	let i = 0;
 	let wasChanged = false;
@@ -105,15 +105,15 @@ export const startBlockchainFeedParser = async (redis: Redis) => {
 
 	const updateAllFeeds = async () => {
 		try {
-			const updatedEvmFeeds = await Promise.all(feeds.map(feed => updateEvmFeed(indexerHub, redis, feed)));
-			await Promise.all(updatedEvmFeeds.map(async feed => feed && (await updatePosts(feed))));
+			const updatedFeeds = await Promise.all(feeds.map(feed => updateFeed(indexerHub, redis, feed)));
+			await Promise.all(updatedFeeds.map(async feed => feed && (await updatePosts(feed))));
 			consequentErrors = 0;
-			console.log(`[${new Date().toISOString()}] EVM Feed updated`);
+			console.log(`[${new Date().toISOString()}] Feed updated`);
 		} catch (e: any) {
 			consequentErrors++;
 			console.error(e);
 			if (consequentErrors > 0) {
-				sendTGAlert(`!!!!!! EVM feed error: ${e.message}`).catch(err => {
+				sendTGAlert(`!!!!!! Blockchain feed error: ${e.message}`).catch(err => {
 					console.error('TG error', err);
 				});
 			}
@@ -125,5 +125,5 @@ export const startBlockchainFeedParser = async (redis: Redis) => {
 		await updateAllFeeds();
 	}, 5 * 1000);
 
-	console.log('EVM parser started');
+	console.log('Blockchain feed parser started');
 };
