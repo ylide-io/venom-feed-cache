@@ -9,7 +9,7 @@ import { retry } from '../utils/retry';
 import { processBlockchainPost } from './processBlockchainPost';
 import { constructGenericEvmFeedId, constructGenericTvmFeedId } from '../utils/copy-to-delete';
 
-const processEvmPost = async (indexerHub: IndexerHub, redis: Redis, feed: FeedEntity, msg: IMessage) => {
+const processPost = async (indexerHub: IndexerHub, redis: Redis, feed: FeedEntity, msg: IMessage) => {
 	const start = Date.now();
 	const content = await retry(() => indexerHub.requestContent(msg));
 	const end = Date.now();
@@ -18,8 +18,6 @@ const processEvmPost = async (indexerHub: IndexerHub, redis: Redis, feed: FeedEn
 	}
 	return await processBlockchainPost(redis, feed, msg, content);
 };
-
-const tvmComposedFeedCache: Record<string, Uint256> = {};
 
 const idxRequest = async (url: string, body: any, timeout = 5000) => {
 	const controller = new AbortController();
@@ -93,7 +91,7 @@ async function updateEvmFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEnt
 			if (exists) {
 				return wasChanged ? feed : null;
 			}
-			await processEvmPost(indexerHub, redis, feed, msg);
+			await processPost(indexerHub, redis, feed, msg);
 			wasChanged = true;
 			console.log(`Saved post #${i++}`);
 			lastPost = msg;
@@ -101,7 +99,7 @@ async function updateEvmFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEnt
 	}
 }
 
-export const startEvmParser = async (redis: Redis) => {
+export const startBlockchainFeedParser = async (redis: Redis) => {
 	const indexerHub = new IndexerHub();
 	let consequentErrors = 0;
 
