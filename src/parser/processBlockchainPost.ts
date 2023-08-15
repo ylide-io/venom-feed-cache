@@ -28,21 +28,26 @@ export const processPostContent = (post: VenomFeedPostEntity, content: IMessageC
 	if (post.banned) {
 		return;
 	}
-	let isPredefined = post.contentText.trim() === '' || predefinedTexts.some(t => post.contentText === t);
-	if (!isPredefined) {
-		isPredefined = isGoodPost(post.contentText);
-		if (isPredefined) {
-			console.log('Good post: ' + post.contentText);
-		}
-	}
-	if (isPredefined) {
-		post.isPredefined = true;
+	if (post.contentText.trim().toLowerCase() === 'gm') {
+		post.isAutobanned = true;
+		post.banned = true;
 	} else {
-		const isBannedAddress = bannedAddresses.includes(post.sender);
-		const isAutobanned = isBannedAddress || shouldBeBanned(post.contentText);
-		if (isAutobanned) {
-			post.isAutobanned = true;
-			post.banned = true;
+		let isPredefined = post.contentText.trim() === '' || predefinedTexts.some(t => post.contentText === t);
+		if (!isPredefined) {
+			isPredefined = isGoodPost(post.contentText);
+			if (isPredefined) {
+				console.log('Good post: ' + post.contentText);
+			}
+		}
+		if (isPredefined) {
+			post.isPredefined = true;
+		} else {
+			const isBannedAddress = bannedAddresses.includes(post.sender);
+			const isAutobanned = isBannedAddress || shouldBeBanned(post.contentText);
+			if (isAutobanned) {
+				post.isAutobanned = true;
+				post.banned = true;
+			}
 		}
 	}
 };
