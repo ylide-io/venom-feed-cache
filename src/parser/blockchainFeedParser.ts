@@ -73,7 +73,7 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEntity
 		const endHistory = Date.now();
 		if (endHistory - startHistory > 300) {
 			console.log(
-				`WARN: retrieving EVM history from indexer took ${endHistory - startHistory}ms: `,
+				`WARN: retrieving blockchain feed history from indexer took ${endHistory - startHistory}ms: `,
 				lastPost === null,
 			);
 		}
