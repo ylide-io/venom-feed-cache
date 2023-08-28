@@ -68,6 +68,7 @@ export const processBlockchainPost = async (
 	post.isComissionValid = true;
 	post.banned = false;
 	post.isAutobanned = false;
+	post.originalFeedId = msg.feedId;
 	if (post.blockchain === 'everscale' || post.blockchain === 'venom-testnet') {
 		post.contractAddress = msg.$$meta.src;
 	} else {
