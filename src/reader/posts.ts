@@ -2,7 +2,7 @@ import { asyncTimer } from '@ylide/sdk';
 import express from 'express';
 import { MoreThan, LessThan } from 'typeorm';
 import { GLOBAL_VENOM_FEED_ID } from '../constants';
-import { postRepository } from '../database';
+import { feedRepository, postRepository } from '../database';
 import { FeedEntity } from '../entities/Feed.entity';
 import { admins, updateAdmins } from '../local-db/admins';
 import { feeds } from '../local-db/feeds';
@@ -71,6 +71,21 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 				order: { createTimestamp: adminMode ? 'ASC' : 'DESC' },
 				take: adminMode ? 10 : 10,
 			});
+			// 3000000000000000000000000000000000000000000000000000001xxxxxxxxx - dexify feeds
+			if (_posts.length === 0 && feedId.startsWith('3000000000000000000000000000000000000000000000000000001')) {
+				const doesFeedExists = feeds.find(f => f.feedId === feedId);
+				if (!doesFeedExists) {
+					const newFeed = new FeedEntity();
+					newFeed.feedId = feedId;
+					newFeed.title = 'Arbitrary feed';
+					newFeed.description = 'Arbitrary feed';
+					newFeed.isHidden = true;
+					newFeed.parentFeedId = null;
+					newFeed.logoUrl = null;
+					await feedRepository.save(newFeed);
+					feeds.push(newFeed);
+				}
+			}
 			return res.json(_posts.map(post => postToDTO(post, admins[feedId])));
 		} catch (e) {
 			console.error(e);
