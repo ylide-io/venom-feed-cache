@@ -3,6 +3,7 @@ import { GLOBAL_VENOM_FEED_ID } from '../constants';
 
 @Entity()
 @Index(['banned', 'feedId', 'createTimestamp'])
+@Index(['banned', 'originalFeedId', 'createTimestamp'])
 export class VenomFeedPostEntity {
 	@PrimaryColumn({ type: 'text' })
 	id!: string;
@@ -14,6 +15,10 @@ export class VenomFeedPostEntity {
 	@Column({ type: 'varchar', length: 255, default: GLOBAL_VENOM_FEED_ID })
 	@Index()
 	feedId!: string;
+
+	@Column({ type: 'varchar', length: 255, default: GLOBAL_VENOM_FEED_ID })
+	@Index()
+	originalFeedId!: string;
 
 	@Column({ type: 'varchar', length: 255, default: 'venom-testnet' })
 	@Index()
