@@ -7,6 +7,7 @@ import { createPostsRouter } from './posts';
 import { createAdminRouter } from './admin';
 import { createServiceStatusRouter } from './service-status';
 import { createFeedsRouter } from './feeds';
+import { admins } from '../local-db';
 
 export async function startReader(port: number, db: DataSource) {
 	const app = express();
@@ -42,6 +43,19 @@ export async function startReader(port: number, db: DataSource) {
 		try {
 			const idx = Math.floor(Math.random() * predefinedTexts.length);
 			return res.json(predefinedTexts[idx]);
+		} catch {
+			return res.end('No idea :(');
+		}
+	});
+
+	app.get('/is-admin', async (req, res) => {
+		try {
+			const feedId = req.query.feedId as string;
+			const address = req.query.address as string;
+			if (admins[feedId]?.some(a => a.address === address)) {
+				return res.json(true);
+			}
+			return res.json(false);
 		} catch {
 			return res.end('No idea :(');
 		}
