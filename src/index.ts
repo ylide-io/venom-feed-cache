@@ -28,7 +28,8 @@ async function run() {
 
 			cluster.on('exit', (worker, code, signal) => {
 				console.log(`worker ${worker.process.pid} died`);
-				sendTGAlert(`BlockchainFeedIndexer: worker ${worker.process.pid} died`);
+				sendTGAlert(`BlockchainFeedIndexer: worker ${worker.process.pid} died, restarting...`);
+				cluster.fork();
 			});
 		}
 	} else {
