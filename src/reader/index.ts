@@ -61,6 +61,15 @@ export async function startReader(port: number, db: DataSource) {
 		}
 	});
 
+	app.get('/admins', async (req, res) => {
+		try {
+			const feedId = req.query.feedId as string;
+			return res.json(admins[feedId]?.map(a => a.address) || []);
+		} catch {
+			return res.end('No idea :(');
+		}
+	});
+
 	app.listen(port, () => {
 		console.log(`Reader is listening on ${port}`);
 	});
