@@ -26,6 +26,7 @@ export const createMessageBus = async (env: DotenvParseOutput) => {
 
 export const AppDataSource = new DataSource({
 	type: 'postgres',
+	poolSize: 3,
 	host: process.env.POSTGRES_HOST,
 	port: Number(process.env.POSTGRES_PORT),
 	username: process.env.POSTGRES_USER,
