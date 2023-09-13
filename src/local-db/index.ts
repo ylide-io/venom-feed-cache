@@ -8,5 +8,5 @@ export * from './posts';
 export * from './predefinedTexts';
 
 export const updatePostsInAllFeeds = async () => {
-	await Promise.all(feeds.map(async feed => await updatePosts(feed)));
+	await Promise.all(feeds.map(async feed => await updatePosts(feed.feedId)));
 };

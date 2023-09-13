@@ -12,11 +12,11 @@ export class VenomFeedPostEntity {
 	@Index()
 	createTimestamp!: number;
 
-	@Column({ type: 'varchar', length: 255, default: GLOBAL_VENOM_FEED_ID })
+	@Column({ type: 'varchar', length: 255, default: null, nullable: true })
 	@Index()
-	feedId!: string;
+	feedId!: string | null;
 
-	@Column({ type: 'varchar', length: 255, default: GLOBAL_VENOM_FEED_ID })
+	@Column({ type: 'varchar', length: 255 })
 	@Index()
 	originalFeedId!: string;
 

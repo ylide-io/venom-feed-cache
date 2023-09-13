@@ -21,7 +21,7 @@ export const postToDTO = (post: VenomFeedPostEntity, admins: undefined | AdminEn
 	return {
 		id: post.id,
 		createTimestamp: post.createTimestamp,
-		feedId: post.feedId,
+		feedId: post.feedId!,
 		sender: post.sender,
 		meta: post.meta,
 		content: post.content,

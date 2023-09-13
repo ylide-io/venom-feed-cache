@@ -1,15 +1,14 @@
 import { postRepository } from '../database';
-import { FeedEntity } from '../entities/Feed.entity';
 import { IVenomFeedPostDTO, postToDTO } from '../types';
 import { admins } from './admins';
 
 export let posts: Record<string, IVenomFeedPostDTO[]> = {};
 
-export const updatePosts = async (feed: FeedEntity) => {
+export const updatePosts = async (feedId: string) => {
 	const _posts = await postRepository.find({
-		where: { banned: false, feedId: feed.feedId },
+		where: { banned: false, feedId: feedId },
 		order: { createTimestamp: 'DESC' },
-		take: 200,
+		take: 50,
 	});
-	posts[feed.feedId] = _posts.map(post => postToDTO(post, admins[feed.feedId]));
+	posts[feedId] = _posts.map(post => postToDTO(post, admins[feedId]));
 };

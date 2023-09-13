@@ -16,7 +16,7 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 	async function updateCache(feed: FeedEntity) {
 		const start = Date.now();
 		await updateAdmins(feed);
-		await updatePosts(feed);
+		await updatePosts(feed.feedId);
 		if (Date.now() - start > 2000) {
 			console.log(`Cache for ${feed.feedId} updated in ${Date.now() - start}ms`);
 		}
@@ -117,7 +117,7 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 					  }
 					: { banned: false, id },
 			});
-			return res.json(post ? postToDTO(post, admins[post.feedId]) : null);
+			return res.json(post ? postToDTO(post, post.feedId ? admins[post.feedId] : undefined) : null);
 		} catch (e) {
 			console.error(e);
 			res.sendStatus(500);

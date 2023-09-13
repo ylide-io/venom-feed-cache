@@ -8,6 +8,12 @@ export class FeedEntity {
 	@Column({ type: 'varchar', length: 255, nullable: true })
 	parentFeedId!: string | null;
 
+	@Column({ type: 'varchar', length: 255, nullable: true })
+	evmFeedId!: string | null;
+
+	@Column({ type: 'varchar', length: 255, nullable: true })
+	tvmFeedId!: string | null;
+
 	@Column({ type: 'varchar', length: 255 })
 	title!: string;
 

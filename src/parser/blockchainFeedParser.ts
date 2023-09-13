@@ -9,14 +9,14 @@ import { retry } from '../utils/retry';
 import { processBlockchainPost } from './processBlockchainPost';
 import { constructGenericEvmFeedId, constructGenericTvmFeedId } from '../utils/copy-to-delete';
 
-const processPost = async (indexerHub: IndexerHub, redis: Redis, feed: FeedEntity, msg: IMessage) => {
+const processPost = async (indexerHub: IndexerHub, redis: Redis, msg: IMessage) => {
 	const start = Date.now();
 	const content = await retry(() => indexerHub.requestContent(msg));
 	const end = Date.now();
 	if (end - start > 300) {
 		console.log(`WARN: retrieving message content took ${end - start}ms: `, msg.msgId);
 	}
-	return await processBlockchainPost(redis, feed, msg, content);
+	return await processBlockchainPost(redis, msg, content);
 };
 
 const idxRequest = async (url: string, body: any, timeout = 5000) => {
@@ -41,13 +41,10 @@ const idxRequest = async (url: string, body: any, timeout = 5000) => {
 	}
 };
 
-async function updateFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEntity) {
+async function updateFeed(indexerHub: IndexerHub, redis: Redis) {
 	let lastPost: any = null;
 	let i = 0;
-	let wasChanged = false;
-
-	const evmComposedFeedId = constructGenericEvmFeedId(feed.feedId as Uint256);
-	const tvmComposedFeedId = constructGenericTvmFeedId(feed.feedId as Uint256, 1);
+	const changedFeeds = new Set<string>();
 
 	while (true) {
 		const startHistory = Date.now();
@@ -58,7 +55,7 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEntity
 						idxRequest(
 							'/broadcasts',
 							{
-								feedId: [evmComposedFeedId, tvmComposedFeedId],
+								feedId: [],
 								offset: 0,
 								limit: 100,
 							},
@@ -79,7 +76,7 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEntity
 		}
 
 		if (history.length === 0) {
-			return wasChanged ? feed : null;
+			return changedFeeds;
 		}
 
 		for (const rawMsg of history) {
@@ -89,10 +86,12 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis, feed: FeedEntity
 			};
 			const exists = await postRepository.findOne({ where: { id: msg.msgId } });
 			if (exists) {
-				return wasChanged ? feed : null;
+				return changedFeeds;
 			}
-			await processPost(indexerHub, redis, feed, msg);
-			wasChanged = true;
+			const { post, feed } = await processPost(indexerHub, redis, msg);
+			if (feed) {
+				changedFeeds.add(feed.feedId);
+			}
 			console.log(`Saved post #${i++}`);
 			lastPost = msg;
 		}
@@ -105,8 +104,8 @@ export const startBlockchainFeedParser = async (redis: Redis) => {
 
 	const updateAllFeeds = async () => {
 		try {
-			const updatedFeeds = await Promise.all(feeds.map(feed => updateFeed(indexerHub, redis, feed)));
-			await Promise.all(updatedFeeds.map(async feed => feed && (await updatePosts(feed))));
+			const updatedFeeds = await updateFeed(indexerHub, redis);
+			await Promise.all([...updatedFeeds.values()].map(async feedId => await updatePosts(feedId)));
 			consequentErrors = 0;
 			console.log(`[${new Date().toISOString()}] Feed updated`);
 		} catch (e: any) {

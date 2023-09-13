@@ -2,7 +2,7 @@ import { IMessageContent, AbstractBlockchainController, IMessage, IMessageCorrup
 import { postRepository } from '../database';
 import { FeedEntity } from '../entities/Feed.entity';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
-import { predefinedTexts, bannedAddresses, getFeedComissions } from '../local-db';
+import { predefinedTexts, bannedAddresses, getFeedComissions, feeds } from '../local-db';
 import { shouldBeBanned } from '../utils/badWords';
 import { decryptBroadcastContent } from '../utils/decryptBroadcastContent';
 import { isGoodPost } from '../utils/goodWords';
@@ -54,7 +54,6 @@ export const processPostContent = (post: VenomFeedPostEntity, content: IMessageC
 
 export const processBlockchainPost = async (
 	redis: Redis,
-	feed: FeedEntity,
 	msg: IMessage,
 	content: IMessageContent | IMessageCorruptedContent | null,
 ) => {
@@ -64,11 +63,16 @@ export const processBlockchainPost = async (
 	post.sender = msg.senderAddress;
 	post.blockchain = msg.blockchain;
 	post.banned = false;
-	post.feedId = feed.feedId;
+	post.originalFeedId = msg.feedId;
+	const feed = feeds.find(f =>
+		msg.blockchain === 'venom-testnet' || msg.blockchain === 'everscale'
+			? f.tvmFeedId === msg.feedId
+			: f.evmFeedId === msg.feedId,
+	);
+	post.feedId = feed ? feed.feedId : null;
 	post.isComissionValid = true;
 	post.banned = false;
 	post.isAutobanned = false;
-	post.originalFeedId = msg.feedId;
 	if (post.blockchain === 'everscale' || post.blockchain === 'venom-testnet') {
 		post.contractAddress = msg.$$meta.src;
 	} else {
@@ -79,22 +83,26 @@ export const processBlockchainPost = async (
 		if (msg.$$meta.extraPayment && typeof msg.$$meta.extraPayment === 'string') {
 			post.extraPayment = excludeDecimals(msg.$$meta.extraPayment, decimals);
 		}
-		const comissions = getFeedComissions(feed.feedId);
-		const comission = calcComissions(msg.blockchain, comissions);
-		if (comission !== '0') {
-			if (msg.$$meta.extraPayment && typeof msg.$$meta.extraPayment === 'string') {
-				const decimalizedComission = calcComissionDecimals(comission, decimals);
-				if (isComissionGreaterOrEqualsThan(msg.$$meta.extraPayment, decimalizedComission)) {
-					post.isComissionValid = true;
+		if (feed) {
+			const comissions = getFeedComissions(feed.feedId);
+			const comission = calcComissions(msg.blockchain, comissions);
+			if (comission !== '0') {
+				if (msg.$$meta.extraPayment && typeof msg.$$meta.extraPayment === 'string') {
+					const decimalizedComission = calcComissionDecimals(comission, decimals);
+					if (isComissionGreaterOrEqualsThan(msg.$$meta.extraPayment, decimalizedComission)) {
+						post.isComissionValid = true;
+					} else {
+						post.isComissionValid = false;
+						post.banned = true;
+						post.isAutobanned = true;
+					}
 				} else {
 					post.isComissionValid = false;
 					post.banned = true;
 					post.isAutobanned = true;
 				}
 			} else {
-				post.isComissionValid = false;
-				post.banned = true;
-				post.isAutobanned = true;
+				post.isComissionValid = true;
 			}
 		} else {
 			post.isComissionValid = true;
@@ -154,4 +162,6 @@ export const processBlockchainPost = async (
 		}
 	}
 	await postRepository.save(post);
+
+	return { post, feed };
 };
