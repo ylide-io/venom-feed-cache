@@ -16,7 +16,7 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 	async function updateCache(feed: FeedEntity) {
 		const start = Date.now();
 		await updateAdmins(feed);
-		await updatePosts(feed.feedId);
+		// await updatePosts(feed.feedId);
 		if (Date.now() - start > 2000) {
 			console.log(`Cache for ${feed.feedId} updated in ${Date.now() - start}ms`);
 		}
