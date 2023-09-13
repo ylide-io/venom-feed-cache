@@ -13,12 +13,10 @@ import { posts, updatePosts } from '../local-db/posts';
 export const createPostsRouter: () => Promise<{ router: express.Router }> = async () => {
 	const router = express.Router();
 
-	async function updateCache(feed: FeedEntity, initial = false) {
+	async function updateCache(feed: FeedEntity) {
 		const start = Date.now();
 		await updateAdmins(feed);
-		if (initial) {
-			await updatePosts(feed.feedId);
-		}
+		await updatePosts(feed.feedId);
 		if (Date.now() - start > 2000) {
 			console.log(`Cache for ${feed.feedId} updated in ${Date.now() - start}ms`);
 		}
@@ -34,7 +32,7 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 
 	for (const feed of feeds) {
 		console.log(`Building cache for ${feed.feedId} (${feed.title})`);
-		await updateCache(feed, true);
+		await updateCache(feed);
 	}
 
 	asyncTimer(updateAllCaches, 5 * 1000);
