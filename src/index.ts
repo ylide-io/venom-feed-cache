@@ -44,8 +44,6 @@ async function run() {
 	await updateBannedAddresses();
 	await updateFeeds();
 
-	await prepopulateFeeds();
-
 	console.log('Caches prepopulated');
 
 	if (process.env.ENV === 'local' || !cluster.isPrimary) {
