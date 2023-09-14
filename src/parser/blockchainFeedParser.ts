@@ -45,6 +45,7 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis) {
 	let lastPost: any = null;
 	let i = 0;
 	const changedFeeds = new Set<string>();
+	let totalNewPosts = 0;
 
 	while (true) {
 		const startHistory = Date.now();
@@ -76,7 +77,7 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis) {
 		}
 
 		if (history.length === 0) {
-			return changedFeeds;
+			return { changedFeeds, totalNewPosts };
 		}
 
 		for (const rawMsg of history) {
@@ -86,13 +87,14 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis) {
 			};
 			const exists = await postRepository.findOne({ where: { id: msg.msgId } });
 			if (exists) {
-				return changedFeeds;
+				return { changedFeeds, totalNewPosts };
 			}
 			const { post, feed } = await processPost(indexerHub, redis, msg);
 			if (feed) {
 				changedFeeds.add(feed.feedId);
 			}
 			console.log(`Saved post #${i++}`);
+			totalNewPosts++;
 			lastPost = msg;
 		}
 	}
@@ -104,10 +106,10 @@ export const startBlockchainFeedParser = async (redis: Redis) => {
 
 	const updateAllFeeds = async () => {
 		try {
-			const updatedFeeds = await updateFeed(indexerHub, redis);
-			await Promise.all([...updatedFeeds.values()].map(async feedId => await updatePosts(feedId)));
+			const { changedFeeds, totalNewPosts } = await updateFeed(indexerHub, redis);
+			await Promise.all([...changedFeeds.values()].map(async feedId => await updatePosts(feedId)));
 			consequentErrors = 0;
-			console.log(`[${new Date().toISOString()}] Feed updated`);
+			console.log(`[${new Date().toISOString()}] Feed updated: ${totalNewPosts} new posts`);
 		} catch (e: any) {
 			consequentErrors++;
 			console.error(e);
