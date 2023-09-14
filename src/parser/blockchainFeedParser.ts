@@ -121,10 +121,41 @@ export const startBlockchainFeedParser = async (redis: Redis) => {
 		}
 	};
 
+	const recoverPostFeedIds = async () => {
+		await postRepository.query(`
+			UPDATE
+				venom_feed_post_entity
+			SET
+				"feedId" = (
+					SELECT
+						f."feedId"
+					FROM
+						feed_entity as f
+					WHERE
+							(f."evmFeedId" = "originalFeedId")
+						OR
+							(f."tvmFeedId" = "originalFeedId")
+				)
+			WHERE
+					"feedId" is null
+				and
+					exists(
+						SELECT
+							f."feedId"
+						FROM
+							feed_entity as f
+						WHERE
+								(f."evmFeedId" = "originalFeedId")
+							OR
+								(f."tvmFeedId" = "originalFeedId")
+					)
+		`);
+	};
+
 	await updateAllFeeds();
-	asyncTimer(async () => {
-		await updateAllFeeds();
-	}, 5 * 1000);
+
+	asyncTimer(updateAllFeeds, 5 * 1000);
+	asyncTimer(recoverPostFeedIds, 60 * 1000);
 
 	console.log('Blockchain feed parser started');
 };

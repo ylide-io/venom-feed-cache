@@ -31,44 +31,12 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 		}
 	}
 
-	async function recoverPostFeedIds() {
-		await postRepository.query(`
-			UPDATE
-				venom_feed_post_entity
-			SET
-				"feedId" = (
-					SELECT
-						f."feedId"
-					FROM
-						feed_entity as f
-					WHERE
-							(f."evmFeedId" = "originalFeedId")
-						OR
-							(f."tvmFeedId" = "originalFeedId")
-				)
-			WHERE
-					"feedId" is null
-				and
-					exists(
-						SELECT
-							f."feedId"
-						FROM
-							feed_entity as f
-						WHERE
-								(f."evmFeedId" = "originalFeedId")
-							OR
-								(f."tvmFeedId" = "originalFeedId")
-					)
-		`);
-	}
-
 	for (const feed of feeds) {
 		console.log(`Building cache for ${feed.feedId} (${feed.title})`);
 		await updateCache(feed);
 	}
 
 	asyncTimer(updateAllCaches, 5 * 1000);
-	asyncTimer(recoverPostFeedIds, 60 * 1000);
 
 	router.get('/posts', async (req, res) => {
 		try {
