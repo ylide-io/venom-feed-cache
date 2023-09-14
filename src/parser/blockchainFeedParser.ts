@@ -154,7 +154,7 @@ export const startBlockchainFeedParser = async (redis: Redis) => {
 
 	await updateAllFeeds();
 
-	asyncTimer(updateAllFeeds, 5 * 1000);
+	asyncTimer(updateAllFeeds, 2 * 1000);
 	asyncTimer(recoverPostFeedIds, 60 * 1000);
 
 	console.log('Blockchain feed parser started');
