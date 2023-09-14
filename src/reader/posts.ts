@@ -1,4 +1,4 @@
-import { asyncTimer } from '@ylide/sdk';
+import { Uint256, asyncTimer } from '@ylide/sdk';
 import express from 'express';
 import { MoreThan, LessThan } from 'typeorm';
 import { GLOBAL_VENOM_FEED_ID } from '../constants';
@@ -9,6 +9,7 @@ import { feeds } from '../local-db/feeds';
 import { postToDTO } from '../types';
 import { validatePostsStatus } from '../middlewares/validate';
 import { posts, updatePosts } from '../local-db/posts';
+import { constructGenericEvmFeedId, constructGenericTvmFeedId } from '../utils/copy-to-delete';
 
 export const createPostsRouter: () => Promise<{ router: express.Router }> = async () => {
 	const router = express.Router();
@@ -41,6 +42,23 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 		try {
 			const { beforeTimestamp: beforeTimestampRaw, adminMode: adminModeRaw, feedId: feedIdRaw } = req.query;
 			const feedId = feedIdRaw ? String(feedIdRaw) : GLOBAL_VENOM_FEED_ID;
+			if (feeds.find(f => f.feedId === feedId) === undefined) {
+				const newFeed = new FeedEntity();
+				newFeed.feedId = feedId;
+				let title = 'New unnamed feed';
+				if (feedId.startsWith('3000000000000000000000000000000000000000000000000000001')) {
+					title = 'New Dexify feed';
+				}
+				newFeed.title = title;
+				newFeed.description = title;
+				newFeed.isHidden = true;
+				newFeed.parentFeedId = null;
+				newFeed.logoUrl = null;
+				newFeed.evmFeedId = constructGenericEvmFeedId(newFeed.feedId as Uint256);
+				newFeed.tvmFeedId = constructGenericTvmFeedId(newFeed.feedId as Uint256, 1);
+				await feedRepository.save(newFeed);
+				feeds.push(newFeed);
+			}
 			const beforeTimestamp = isNaN(Number(beforeTimestampRaw)) ? 0 : Number(beforeTimestampRaw);
 			const adminMode = adminModeRaw === 'true';
 			const idx = !adminMode
@@ -71,21 +89,6 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 				order: { createTimestamp: adminMode ? 'ASC' : 'DESC' },
 				take: adminMode ? 10 : 10,
 			});
-			// 3000000000000000000000000000000000000000000000000000001xxxxxxxxx - dexify feeds
-			if (_posts.length === 0 && feedId.startsWith('3000000000000000000000000000000000000000000000000000001')) {
-				const doesFeedExists = feeds.find(f => f.feedId === feedId);
-				if (!doesFeedExists) {
-					const newFeed = new FeedEntity();
-					newFeed.feedId = feedId;
-					newFeed.title = 'Arbitrary feed';
-					newFeed.description = 'Arbitrary feed';
-					newFeed.isHidden = true;
-					newFeed.parentFeedId = null;
-					newFeed.logoUrl = null;
-					await feedRepository.save(newFeed);
-					feeds.push(newFeed);
-				}
-			}
 			return res.json(_posts.map(post => postToDTO(post, admins[feedId])));
 		} catch (e) {
 			console.error(e);
