@@ -3,39 +3,13 @@ const env = dotenv.config().parsed || {};
 
 import 'newrelic';
 
-import cluster from 'node:cluster';
-import { availableParallelism } from 'node:os';
-
-import { startReader } from './reader';
 import { AppDataSource, createMessageBus } from './database';
 import { updateBannedAddresses, updateFeeds, updatePredefinedTexts } from './local-db';
-import { sendTGAlert } from './utils/telegram';
 import { startBlockchainFeedParser } from './parser/blockchainFeedParser';
-import { prepopulateFeeds } from './utils/prepopulate';
-
-const numCPUs = availableParallelism();
+import { startReader } from './reader';
+import { sendTGAlert } from './utils/telegram';
 
 async function run() {
-	if (process.env.ENV !== 'local') {
-		console.log('Starting cluster in a production mode');
-		if (cluster.isPrimary) {
-			console.log(`Primary ${process.pid} is running`);
-
-			// Fork workers.
-			for (let i = 0; i < numCPUs; i++) {
-				cluster.fork();
-			}
-
-			cluster.on('exit', (worker, code, signal) => {
-				console.log(`worker ${worker.process.pid} died`);
-				sendTGAlert(`BlockchainFeedIndexer: worker ${worker.process.pid} died, restarting...`);
-				cluster.fork();
-			});
-		}
-	} else {
-		console.log('Starting without cluster in a local mode');
-	}
-
 	console.log('Start');
 	const pool = await AppDataSource.initialize();
 	console.log('Database connected');
@@ -44,12 +18,26 @@ async function run() {
 	await updateBannedAddresses();
 	await updateFeeds();
 
-	console.log('Caches prepopulated');
+	console.log('Caches pre-populated');
 
-	if (process.env.ENV === 'local' || !cluster.isPrimary) {
+	process.on('SIGINT', async () => {
+		sendTGAlert(
+			`BlockchainFeed ${
+				env.READER === 'true' ? 'reader' : process.env.PARSER === 'true' ? 'parser' : ''
+			} process ${process.pid} is restarting...`,
+		);
+		if (pool.isInitialized) {
+			await pool.destroy();
+			process.exit(0);
+		}
+	});
+
+	if (process.env.ENV === 'local' || process.env.READER === 'true') {
+		console.log('Starting reader...');
 		await startReader(Number(env.PORT), pool);
 	}
-	if (env.READ_FEED === 'true' && (process.env.ENV === 'local' || cluster.isPrimary)) {
+	if (env.READ_FEED === 'true' && (process.env.ENV === 'local' || process.env.PARSER === 'true')) {
+		console.log('Starting parser...');
 		const { redis } = await createMessageBus(env);
 		await startBlockchainFeedParser(redis);
 	}
