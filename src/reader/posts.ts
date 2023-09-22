@@ -114,8 +114,8 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 			const feedId = feedIdRaw ? String(feedIdRaw) : GLOBAL_VENOM_FEED_ID;
 			const addresses = addressRaw
 				? typeof addressRaw === 'string'
-					? [addressRaw]
-					: (addressRaw as string[])
+					? [addressRaw.toLowerCase()]
+					: (addressRaw as string[]).map(a => a.toLowerCase())
 				: [];
 			if (feeds.find(f => f.feedId === feedId) === undefined) {
 				const newFeed = new FeedEntity();
@@ -237,9 +237,14 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 
 	router.get('/v2/post', async (req, res) => {
 		try {
-			const { id: idRaw, adminMode: adminModeRaw } = req.query;
+			const { id: idRaw, adminMode: adminModeRaw, address: addressRaw } = req.query;
 			const id = String(idRaw);
 			const adminMode = adminModeRaw === 'true';
+			const addresses = addressRaw
+				? typeof addressRaw === 'string'
+					? [addressRaw.toLowerCase()]
+					: (addressRaw as string[]).map(a => a.toLowerCase())
+				: [];
 			const parameters: (string | number)[] = [id];
 			let whereClause = '';
 			if (adminMode) {
@@ -248,7 +253,14 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 			} else {
 				whereClause = 'where p."banned" is false and p."id" = $1';
 			}
-			const sqlQuery = getPostsWithReactionsQuery({ whereClause });
+			let addressWhereClause = '';
+			if (addresses.length) {
+				addressWhereClause = ` and address in (${addresses
+					.map((_, i) => `$${i + 1 + parameters.length}`)
+					.join(', ')})`;
+				parameters.push(...addresses.map(a => a.toLowerCase()));
+			}
+			const sqlQuery = getPostsWithReactionsQuery({ whereClause, addressWhereClause });
 			const _posts = (await postRepository.query(sqlQuery, parameters)) as PostWithReactions[];
 			const post = _posts.length === 1 ? _posts[0] : null;
 
