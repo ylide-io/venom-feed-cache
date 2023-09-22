@@ -8,7 +8,6 @@
 		"build": "tsc -p ."
 	},
 	"dependencies": {
-		"@types/heapdump": "^0.3.2",
 		"@ylide/sdk": "0.9.0-beta.8",
 		"@ylide/smart-buffer": "0.0.17",
 		"body-parser": "1.20.2",
@@ -17,7 +16,6 @@
 		"cors": "2.8.5",
 		"dotenv": "16.3.1",
 		"express": "4.18.2",
-		"heapdump": "^0.3.15",
 		"ioredis": "5.3.2",
 		"joi": "17.9.2",
 		"jsonwebtoken": "^9.0.2",
