@@ -23,7 +23,8 @@ export const authenticationFactory = () => {
 		return a.length === b.length && a.every((v, i) => v === b[i]);
 	};
 
-	return async ({ messageEncrypted, publicKey, address }: AuthorizationPayload) => {
+	return async ({ messageEncrypted, publicKey, address: addressRaw }: AuthorizationPayload) => {
+		const address = addressRaw.toLowerCase();
 		try {
 			const publicKeysForAddress = Object.values(
 				await indexerHub.retryingOperation(
