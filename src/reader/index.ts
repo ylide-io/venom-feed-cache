@@ -1,3 +1,4 @@
+import v8 from 'v8';
 import express from 'express';
 import bodyParser from 'body-parser';
 import { DataSource } from 'typeorm';
@@ -70,6 +71,15 @@ export async function startReader(port: number, db: DataSource) {
 			return res.json(admins[feedId]?.map(a => a.address) || []);
 		} catch {
 			return res.end('No idea :(');
+		}
+	});
+
+	app.get('/dump-heap', (req, res) => {
+		try {
+			v8.writeHeapSnapshot(`${Date.now()}.heapsnapshot`);
+			return res.end('OK');
+		} catch {
+			return res.end('NO');
 		}
 	});
 
