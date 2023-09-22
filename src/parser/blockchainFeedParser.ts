@@ -106,8 +106,7 @@ export const startBlockchainFeedParser = async (redis: Redis) => {
 
 	const updateAllFeeds = async () => {
 		try {
-			const { changedFeeds, totalNewPosts } = await updateFeed(indexerHub, redis);
-			await Promise.all([...changedFeeds.values()].map(async feedId => await updatePosts(feedId)));
+			const { totalNewPosts } = await updateFeed(indexerHub, redis);
 			consequentErrors = 0;
 			console.log(`[${new Date().toISOString()}] Feed updated: ${totalNewPosts} new posts`);
 		} catch (e: any) {

@@ -1,5 +1,5 @@
-import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
-import { GLOBAL_VENOM_FEED_ID } from '../constants';
+import { Column, Entity, Index, OneToMany, PrimaryColumn } from 'typeorm';
+import { FeedPostReactionEntity } from './FeedPostReaction.entity';
 
 @Entity()
 @Index(['banned', 'feedId', 'createTimestamp'])
@@ -56,4 +56,7 @@ export class VenomFeedPostEntity {
 
 	@Column({ type: 'varchar', length: 255, default: '', nullable: false })
 	contractAddress!: string;
+
+	@OneToMany(() => FeedPostReactionEntity, reaction => reaction.post)
+	reactions!: FeedPostReactionEntity[];
 }

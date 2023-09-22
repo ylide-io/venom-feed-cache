@@ -8,6 +8,8 @@ import { createAdminRouter } from './admin';
 import { createServiceStatusRouter } from './service-status';
 import { createFeedsRouter } from './feeds';
 import { admins } from '../local-db';
+import { createAuthRouter } from './auth';
+import heapdump from 'heapdump';
 
 export async function startReader(port: number, db: DataSource) {
 	const app = express();
@@ -33,8 +35,10 @@ export async function startReader(port: number, db: DataSource) {
 	const { router: adminRouter } = await createAdminRouter();
 	const { router: serviceStatusRouter } = await createServiceStatusRouter();
 	const { router: feedsRouter } = await createFeedsRouter();
+	const { router: authRouter } = await createAuthRouter();
 
 	app.use('/', postsRouter);
+	app.use('/', authRouter);
 	app.use('/', adminRouter);
 	app.use('/', serviceStatusRouter);
 	app.use('/feeds', feedsRouter);
@@ -67,6 +71,15 @@ export async function startReader(port: number, db: DataSource) {
 			return res.json(admins[feedId]?.map(a => a.address) || []);
 		} catch {
 			return res.end('No idea :(');
+		}
+	});
+
+	app.get('/dump-heap', (req, res) => {
+		try {
+			heapdump.writeSnapshot(`./heapdump${Date.now()}.heapsnapshot`);
+			return res.end('OK');
+		} catch {
+			return res.end('NO');
 		}
 	});
 
