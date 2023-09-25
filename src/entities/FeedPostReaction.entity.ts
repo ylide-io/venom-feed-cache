@@ -1,9 +1,10 @@
-import { Column, Entity, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, ManyToOne, PrimaryColumn } from 'typeorm';
 import { VenomFeedPostEntity } from './VenomFeedPost.entity';
 
 @Entity()
 export class FeedPostReactionEntity {
 	@PrimaryColumn({ type: 'text' })
+	@Index()
 	address!: string;
 
 	@ManyToOne(() => VenomFeedPostEntity, post => post.reactions)
