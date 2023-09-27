@@ -275,11 +275,11 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 	router.post('/reaction', authorize, async (req, res) => {
 		try {
 			const { postId: postIdRaw, reaction: reactionRaw } = req.body;
-			if (typeof reactionRaw !== 'string' || !isEmoji(reactionRaw)) {
+			if (reactionRaw && (typeof reactionRaw !== 'string' || !isEmoji(reactionRaw))) {
 				return res.status(400).json({ error: 'Emoji validation error' });
 			}
 			const postId = String(postIdRaw);
-			const reaction = String(reactionRaw);
+			const reaction = reactionRaw ? String(reactionRaw) : null;
 			// @ts-ignore
 			const address = req.userAddress;
 
@@ -290,17 +290,25 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 
 			const exist = await reactionRepository.findOne({ where: { address, postId } });
 			if (exist) {
-				return res.status(404).json({ error: 'Reaction already exists' });
+				if (reaction) {
+					exist.reaction = reaction;
+					await reactionRepository.save(exist);
+				} else {
+					await reactionRepository.remove(exist);
+				}
+			} else {
+				if (reaction) {
+					const reactionEntity = new FeedPostReactionEntity();
+					reactionEntity.address = address;
+					reactionEntity.post = post;
+					reactionEntity.reaction = reaction;
+					await reactionRepository.save(reactionEntity);
+				} else {
+					res.status(400).json('No reaction to save');
+					return;
+				}
 			}
-
-			const reactionEntity = new FeedPostReactionEntity();
-			reactionEntity.address = address;
-			reactionEntity.post = post;
-			reactionEntity.reaction = reaction;
-
-			await reactionRepository.save(reactionEntity);
-
-			res.sendStatus(201);
+			res.sendStatus(200);
 		} catch (e) {
 			console.error(e);
 			res.sendStatus(500);
