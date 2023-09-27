@@ -288,6 +288,11 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 				return res.status(404).json({ error: 'No post' });
 			}
 
+			const exist = await reactionRepository.findOne({ where: { address, postId } });
+			if (exist) {
+				return res.status(404).json({ error: 'Reaction already exists' });
+			}
+
 			const reactionEntity = new FeedPostReactionEntity();
 			reactionEntity.address = address;
 			reactionEntity.post = post;
