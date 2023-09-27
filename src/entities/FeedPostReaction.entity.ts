@@ -1,9 +1,12 @@
-import { Column, Entity, Index, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { VenomFeedPostEntity } from './VenomFeedPost.entity';
 
 @Entity()
 export class FeedPostReactionEntity {
-	@PrimaryColumn({ type: 'text' })
+	@PrimaryGeneratedColumn('identity', { type: 'bigint', generatedIdentity: 'ALWAYS' })
+	id!: string;
+
+	@Column({ type: 'text' })
 	@Index()
 	address!: string;
 
