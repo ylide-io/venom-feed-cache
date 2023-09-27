@@ -7,6 +7,9 @@ export class FeedPostReactionEntity {
 	@Index()
 	address!: string;
 
+	@Column()
+	postId!: string;
+
 	@ManyToOne(() => VenomFeedPostEntity, post => post.reactions)
 	post!: VenomFeedPostEntity;
 

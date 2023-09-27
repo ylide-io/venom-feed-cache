@@ -71,16 +71,20 @@ export const authorizationFactory = () => {
 		throw Error('JWT_KEY is undefined');
 	}
 	return async (req: Request, res: Response, next: NextFunction) => {
-		const bearerHeader = req.headers['authorization'];
-		if (bearerHeader) {
-			const bearer = bearerHeader.split(' ');
-			const bearerToken = bearer[1];
-			const address = jwt.verify(bearerToken, JWT_KEY) as string;
-			if (isValidAddress(address)) {
-				// @ts-ignore
-				req.userAddress = address;
-				return next();
+		try {
+			const bearerHeader = req.headers['authorization'];
+			if (bearerHeader) {
+				const bearer = bearerHeader.split(' ');
+				const bearerToken = bearer[1];
+				const address = jwt.verify(bearerToken, JWT_KEY) as string;
+				if (isValidAddress(address)) {
+					// @ts-ignore
+					req.userAddress = address;
+					return next();
+				}
 			}
+		} catch (e) {
+			console.log(e);
 		}
 		return res.status(403).json({ error: 'Unauthorized' });
 	};

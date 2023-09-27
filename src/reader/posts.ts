@@ -10,6 +10,7 @@ import { feeds } from '../local-db/feeds';
 import { posts, postsWithReactions, updatePosts, updatePostsWithReactions } from '../local-db/posts';
 import { validatePostsStatus } from '../middlewares/validate';
 import { PostWithReactions, Reactions, postToDTO, postWithReactionToDTO } from '../types';
+import { isEmoji } from '../utils';
 import asyncTimer from '../utils/asyncTimer';
 import { constructGenericEvmFeedId, constructGenericTvmFeedId } from '../utils/copy-to-delete';
 import { getPostsWithReactionsQuery, getReactionsForPosts } from '../utils/queries';
@@ -274,6 +275,9 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 	router.post('/reaction', authorize, async (req, res) => {
 		try {
 			const { postId: postIdRaw, reaction: reactionRaw } = req.body;
+			if (typeof reactionRaw !== 'string' || !isEmoji(reactionRaw)) {
+				return res.status(400).json({ error: 'Emoji validation error' });
+			}
 			const postId = String(postIdRaw);
 			const reaction = String(reactionRaw);
 			// @ts-ignore
@@ -292,6 +296,27 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 			await reactionRepository.save(reactionEntity);
 
 			res.sendStatus(201);
+		} catch (e) {
+			console.error(e);
+			res.sendStatus(500);
+		}
+	});
+
+	router.delete('/reaction', authorize, async (req, res) => {
+		try {
+			const { postId: postIdRaw } = req.body;
+			const postId = String(postIdRaw);
+			// @ts-ignore
+			const address = req.userAddress;
+
+			const reaction = await reactionRepository.findOne({ where: { postId, address } });
+			if (!reaction) {
+				return res.status(404).json({ error: 'No reaction' });
+			}
+
+			await reactionRepository.remove(reaction);
+
+			res.sendStatus(204);
 		} catch (e) {
 			console.error(e);
 			res.sendStatus(500);
