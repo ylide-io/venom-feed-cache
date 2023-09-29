@@ -315,27 +315,6 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 		}
 	});
 
-	router.delete('/reaction', authorize, async (req, res) => {
-		try {
-			const { postId: postIdRaw } = req.body;
-			const postId = String(postIdRaw);
-			// @ts-ignore
-			const address = req.userAddress;
-
-			const reaction = await reactionRepository.findOne({ where: { postId, address } });
-			if (!reaction) {
-				return res.status(404).json({ error: 'No reaction' });
-			}
-
-			await reactionRepository.remove(reaction);
-
-			res.sendStatus(204);
-		} catch (e) {
-			console.error(e);
-			res.sendStatus(500);
-		}
-	});
-
 	router.get('/posts-status', validatePostsStatus, async (req, res) => {
 		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
 		const result = await postRepository
