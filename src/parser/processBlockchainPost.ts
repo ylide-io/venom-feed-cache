@@ -161,12 +161,12 @@ export const processBlockchainPost = async (
 			// do nothing
 		}
 	}
-	const hashtagsEntities = extractHashtags(post.contentText).map(h => {
-		const e = new HashtagEntity();
-		e.name = h;
-		return e;
-	});
-	post.hashtags = hashtagsEntities;
+	// const hashtagsEntities = extractHashtags(post.contentText).map(h => {
+	// 	const e = new HashtagEntity();
+	// 	e.name = h;
+	// 	return e;
+	// });
+	// post.hashtags = hashtagsEntities;
 	await postRepository.save(post);
 
 	return { post, feed };
