@@ -16,6 +16,7 @@ import {
 import { decryptBroadcastContent } from '../utils/decryptBroadcastContent';
 import { isGoodPost } from '../utils/goodWords';
 import uniq from 'lodash.uniq';
+import { sendTGAlert } from '../utils/telegram';
 
 export const processPostContent = (post: VenomFeedPostEntity, content: IMessageContent) => {
 	post.content = {
@@ -162,13 +163,23 @@ export const processBlockchainPost = async (
 			// do nothing
 		}
 	}
-	const hashtagsEntities = uniq(extractHashtags(post.contentText)).map(h => {
-		const e = new HashtagEntity();
-		e.name = h;
-		return e;
-	});
-	post.hashtags = hashtagsEntities;
-	await postRepository.save(post);
+	try {
+		const hashtagsEntities = uniq(extractHashtags(post.contentText)).map(h => {
+			const e = new HashtagEntity();
+			e.name = h;
+			return e;
+		});
+		post.hashtags = hashtagsEntities;
+		await postRepository.save(post);
+	} catch (error) {
+		sendTGAlert(
+			`BlockhainFeedParser: Failed to save hashtags for post #${
+				post.id
+			}. Will save without it. Error: ${JSON.stringify(error)}`,
+		);
+		post.hashtags = [];
+		await postRepository.save(post);
+	}
 
 	return { post, feed };
 };
