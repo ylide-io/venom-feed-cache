@@ -1,5 +1,6 @@
-import { Column, Entity, Index, OneToMany, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToMany, OneToMany, PrimaryColumn } from 'typeorm';
 import { FeedPostReactionEntity } from './FeedPostReaction.entity';
+import { HashtagEntity } from './Hashtag.entity';
 
 @Entity()
 @Index(['banned', 'feedId', 'createTimestamp'])
@@ -59,4 +60,8 @@ export class VenomFeedPostEntity {
 
 	@OneToMany(() => FeedPostReactionEntity, reaction => reaction.post)
 	reactions!: FeedPostReactionEntity[];
+
+	@ManyToMany(() => HashtagEntity, hashtag => hashtag.posts)
+	@JoinTable()
+	hashtags!: HashtagEntity[] | string[];
 }

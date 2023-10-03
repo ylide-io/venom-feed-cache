@@ -1,20 +1,20 @@
-import { IMessageContent, AbstractBlockchainController, IMessage, IMessageCorruptedContent } from '@ylide/sdk';
+import { IMessage, IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
+import Redis from 'ioredis';
+import { DECIMALS } from '../constants';
 import { postRepository } from '../database';
-import { FeedEntity } from '../entities/Feed.entity';
+import { HashtagEntity } from '../entities/Hashtag.entity';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
-import { predefinedTexts, bannedAddresses, getFeedComissions, feeds } from '../local-db';
+import { bannedAddresses, feeds, getFeedComissions, predefinedTexts } from '../local-db';
+import { extractHashtags } from '../utils';
 import { shouldBeBanned } from '../utils/badWords';
-import { decryptBroadcastContent } from '../utils/decryptBroadcastContent';
-import { isGoodPost } from '../utils/goodWords';
-import { retry } from '../utils/retry';
 import {
 	calcComissionDecimals,
 	calcComissions,
 	excludeDecimals,
 	isComissionGreaterOrEqualsThan,
 } from '../utils/calcComissions';
-import { DECIMALS } from '../constants';
-import Redis from 'ioredis';
+import { decryptBroadcastContent } from '../utils/decryptBroadcastContent';
+import { isGoodPost } from '../utils/goodWords';
 
 export const processPostContent = (post: VenomFeedPostEntity, content: IMessageContent) => {
 	post.content = {
@@ -161,6 +161,12 @@ export const processBlockchainPost = async (
 			// do nothing
 		}
 	}
+	const hashtagsEntities = extractHashtags(post.contentText).map(h => {
+		const e = new HashtagEntity();
+		e.name = h;
+		return e;
+	});
+	post.hashtags = hashtagsEntities;
 	await postRepository.save(post);
 
 	return { post, feed };

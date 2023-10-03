@@ -1,15 +1,16 @@
 import fs from 'fs';
 //
-import { DataSource } from 'typeorm';
 import { DotenvParseOutput } from 'dotenv';
 import { Redis } from 'ioredis';
+import { DataSource } from 'typeorm';
 //
-import { VenomFeedPostEntity } from './entities/VenomFeedPost.entity';
-import { PredefinedTextEntity } from './entities/PredefinedText.entity';
-import { BannedAddressEntity } from './entities/BannedAddress.entity';
 import { AdminEntity } from './entities/Admin.entity';
+import { BannedAddressEntity } from './entities/BannedAddress.entity';
 import { FeedEntity } from './entities/Feed.entity';
 import { FeedPostReactionEntity } from './entities/FeedPostReaction.entity';
+import { HashtagEntity } from './entities/Hashtag.entity';
+import { PredefinedTextEntity } from './entities/PredefinedText.entity';
+import { VenomFeedPostEntity } from './entities/VenomFeedPost.entity';
 
 export const createMessageBus = async (env: DotenvParseOutput) => {
 	const redis = new Redis({
@@ -48,6 +49,7 @@ export const AppDataSource = new DataSource({
 		AdminEntity,
 		FeedEntity,
 		FeedPostReactionEntity,
+		HashtagEntity,
 	],
 	subscribers: [],
 	migrations: [],
@@ -60,3 +62,4 @@ export const bannedAddressRepository = AppDataSource.getRepository(BannedAddress
 export const adminRepository = AppDataSource.getRepository(AdminEntity);
 export const feedRepository = AppDataSource.getRepository(FeedEntity);
 export const reactionRepository = AppDataSource.getRepository(FeedPostReactionEntity);
+export const hashtagRepository = AppDataSource.getRepository(HashtagEntity);

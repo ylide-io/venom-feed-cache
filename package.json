@@ -5,7 +5,8 @@
 	"main": "index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "tsc -p ."
+		"build": "tsc -p .",
+		"dev:reader": "READER=true ts-node-dev --respawn --transpile-only ./src/index.ts"
 	},
 	"dependencies": {
 		"@ylide/sdk": "0.9.0-beta.8",
@@ -42,7 +43,8 @@
 		"tsconfig-paths": "4.2.0",
 		"tslint": "6.1.3",
 		"tslint-config-prettier": "1.18.0",
-		"typescript": "5.1.6"
+		"typescript": "5.1.6",
+		"ts-node-dev": "^2.0.0"
 	},
 	"keywords": [],
 	"author": "",
