@@ -15,6 +15,7 @@ import {
 } from '../utils/calcComissions';
 import { decryptBroadcastContent } from '../utils/decryptBroadcastContent';
 import { isGoodPost } from '../utils/goodWords';
+import uniq from 'lodash.uniq';
 
 export const processPostContent = (post: VenomFeedPostEntity, content: IMessageContent) => {
 	post.content = {
@@ -161,7 +162,7 @@ export const processBlockchainPost = async (
 			// do nothing
 		}
 	}
-	const hashtagsEntities = extractHashtags(post.contentText).map(h => {
+	const hashtagsEntities = uniq(extractHashtags(post.contentText)).map(h => {
 		const e = new HashtagEntity();
 		e.name = h;
 		return e;
