@@ -61,7 +61,7 @@ export class VenomFeedPostEntity {
 	@OneToMany(() => FeedPostReactionEntity, reaction => reaction.post)
 	reactions!: FeedPostReactionEntity[];
 
-	@ManyToMany(() => HashtagEntity, hashtag => hashtag.posts)
+	@ManyToMany(() => HashtagEntity, hashtag => hashtag.posts, { cascade: true })
 	@JoinTable()
 	hashtags!: HashtagEntity[] | string[];
 }

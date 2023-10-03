@@ -34,7 +34,9 @@ export interface IVenomFeedPostWithReactionsDTO {
 }
 
 export const postToDTO = (post: VenomFeedPostEntity, admins: undefined | AdminEntity[]): IVenomFeedPostDTO => {
-	const foundAdmin = admins ? admins.find(admin => admin.address === post.sender) : undefined;
+	const foundAdmin = admins
+		? admins.find(admin => admin.address.toLowerCase() === post.sender.toLowerCase())
+		: undefined;
 	return {
 		id: post.id,
 		createTimestamp: post.createTimestamp,
@@ -55,7 +57,9 @@ export const postWithReactionToDTO = (
 	post: PostWithReactions,
 	admins: undefined | AdminEntity[],
 ): IVenomFeedPostWithReactionsDTO => {
-	const foundAdmin = admins ? admins.find(admin => admin.address === post.sender) : undefined;
+	const foundAdmin = admins
+		? admins.find(admin => admin.address.toLowerCase() === post.sender.toLowerCase())
+		: undefined;
 	return {
 		id: post.id,
 		createTimestamp: post.createTimestamp,
