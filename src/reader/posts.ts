@@ -299,9 +299,9 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 			const feedId = feedIdRaw ? String(feedIdRaw) : GLOBAL_VENOM_FEED_ID;
 			const hashtag =
 				typeof hashtagRaw === 'string'
-					? [hashtagRaw]
+					? [hashtagRaw.toLowerCase()]
 					: Array.isArray(hashtagRaw)
-					? hashtagRaw.map(h => String(h))
+					? hashtagRaw.map(h => String(h).toLowerCase())
 					: null;
 			const addresses = addressRaw
 				? typeof addressRaw === 'string'
