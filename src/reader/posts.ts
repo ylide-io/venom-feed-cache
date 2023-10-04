@@ -350,8 +350,6 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 				builder.leftJoin('p.hashtags', 'hashtag').andWhere('hashtag.name in (:...hashtag)', { hashtag });
 			}
 
-			console.log(builder.getQueryAndParameters());
-
 			const _posts = await builder.getRawMany();
 
 			return res.json(_posts.map(post => postWithReactionToDTO(post, admins[feedId])));
