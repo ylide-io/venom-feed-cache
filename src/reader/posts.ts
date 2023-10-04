@@ -10,7 +10,7 @@ import { feeds } from '../local-db/feeds';
 import { posts, postsWithReactions, updatePosts, updatePostsWithReactions } from '../local-db/posts';
 import { validatePostsStatus } from '../middlewares/validate';
 import { PostWithReactions, Reactions, postToDTO, postWithReactionToDTO } from '../types';
-import { isEmoji } from '../utils';
+import { brackets, isEmoji } from '../utils';
 import asyncTimer from '../utils/asyncTimer';
 import { constructGenericEvmFeedId, constructGenericTvmFeedId } from '../utils/copy-to-delete';
 import { getPostsWithReactionsQuery, getReactionsForPosts } from '../utils/queries';
@@ -20,6 +20,70 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 	const router = express.Router();
 
 	const authorize = authorizationFactory();
+
+	const getPostBuilder = (feedId: string, addresses: string[], adminMode = false, beforeTimestamp?: number) => {
+		const reactionsCountSubQuery = reactionRepository
+			.createQueryBuilder('r')
+			.select(['r."postId"', 'r."reaction"', 'count(*) as count'])
+			.where('r."postId" = p."id"')
+			.groupBy('r."postId"')
+			.addGroupBy('r."reaction"');
+
+		const addressReactionsSubQuery = reactionRepository
+			.createQueryBuilder('r')
+			.select(['r."postId"', 'r."reaction"', 'r."address"'])
+			.where('r."postId" = p."id"')
+			.andWhere('r.address in (:...addresses)', { addresses });
+
+		const builder = postRepository
+			.createQueryBuilder('p')
+			.select([
+				'p."id"',
+				'p."createTimestamp"',
+				'p."feedId"',
+				'p."sender"',
+				'p."meta"',
+				'p."content"',
+				'p."banned"',
+				'p."blockchain"',
+			])
+			.addSelect(
+				qb =>
+					qb
+						.subQuery()
+						.select(`coalesce(jsonb_object_agg(rr.reaction, rr.count), '{}'::jsonb)`)
+						.from(brackets(reactionsCountSubQuery.getSql()), 'rr'),
+				'reactionsCounts',
+			)
+			.addSelect(
+				qb =>
+					qb
+						.subQuery()
+						.select(`coalesce(jsonb_object_agg(rr.address, rr.reaction), '{}'::jsonb)`)
+						.from(brackets(addressReactionsSubQuery.getQuery()), 'rr'),
+				'addressReactions',
+			)
+			.setParameters(addressReactionsSubQuery.getParameters())
+			.where('banned is false')
+			.andWhere('p."feedId" = :feedId', { feedId })
+			.limit(10);
+		if (adminMode) {
+			builder
+				.andWhere('p."isAutobanned" is false')
+				.andWhere('p."isPredefined" is false')
+				.andWhere('p."isApproved" is false')
+				.orderBy('p."createTimestamp"', 'ASC');
+			if (beforeTimestamp) {
+				builder.andWhere('p."createTimestamp" > :beforeTimestamp', { beforeTimestamp });
+			}
+		} else {
+			if (beforeTimestamp) {
+				builder.andWhere('p."createTimestamp" < :beforeTimestamp', { beforeTimestamp });
+			}
+			builder.orderBy('p."createTimestamp"', 'DESC');
+		}
+		return builder;
+	};
 
 	async function updateCache(feed: FeedEntity) {
 		const start = Date.now();
@@ -39,12 +103,13 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 		}
 	}
 
-	for (const feed of feeds) {
-		console.log(`Building cache for ${feed.feedId} (${feed.title})`);
-		await updateCache(feed);
-	}
-
-	asyncTimer(updateAllCaches, 5 * 1000);
+	(async () => {
+		for (const feed of feeds) {
+			console.log(`Building cache for ${feed.feedId} (${feed.title})`);
+			await updateCache(feed);
+		}
+		asyncTimer(updateAllCaches, 5 * 1000);
+	})();
 
 	router.get('/posts', async (req, res) => {
 		try {
@@ -205,6 +270,97 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 		}
 	});
 
+	router.get('/v3/posts', async (req, res) => {
+		try {
+			const {
+				beforeTimestamp: beforeTimestampRaw,
+				adminMode: adminModeRaw,
+				feedId: feedIdRaw,
+				address: addressRaw,
+				hashtag: hashtagRaw,
+			} = req.query;
+			const feedId = feedIdRaw ? String(feedIdRaw) : GLOBAL_VENOM_FEED_ID;
+			const hashtag =
+				typeof hashtagRaw === 'string'
+					? [hashtagRaw]
+					: Array.isArray(hashtagRaw)
+					? hashtagRaw.map(h => String(h))
+					: null;
+			const addresses = addressRaw
+				? typeof addressRaw === 'string'
+					? [addressRaw.toLowerCase()]
+					: (addressRaw as string[]).map(a => a.toLowerCase())
+				: [];
+			if (feeds.find(f => f.feedId === feedId) === undefined) {
+				const newFeed = new FeedEntity();
+				newFeed.feedId = feedId;
+				let title = 'New unnamed feed';
+				if (feedId.startsWith('3000000000000000000000000000000000000000000000000000001')) {
+					title = 'New Dexify feed';
+				}
+				newFeed.title = title;
+				newFeed.description = title;
+				newFeed.isHidden = true;
+				newFeed.parentFeedId = null;
+				newFeed.logoUrl = null;
+				newFeed.evmFeedId = constructGenericEvmFeedId(newFeed.feedId as Uint256);
+				newFeed.tvmFeedId = constructGenericTvmFeedId(newFeed.feedId as Uint256, 1);
+				await feedRepository.save(newFeed);
+				feeds.push(newFeed);
+			}
+			const beforeTimestamp = isNaN(Number(beforeTimestampRaw)) ? 0 : Number(beforeTimestampRaw);
+			const adminMode = adminModeRaw === 'true';
+			const posts = postsWithReactions[feedId] || [];
+			const idx = !adminMode
+				? beforeTimestamp === 0
+					? 0
+					: posts
+					? posts.findIndex(p => p.createTimestamp < beforeTimestamp)
+					: -1
+				: -1;
+			if (!hashtag && idx !== -1 && !adminMode && idx <= posts.length - 10) {
+				const _posts = posts.slice(idx, idx + 10);
+				if (addresses.length) {
+					const builder = reactionRepository
+						.createQueryBuilder('reaction')
+						.select('"postId"')
+						.addSelect('jsonb_object_agg(address, reaction) as "addressReactions"')
+						.where('"postId" in (:...postId)', { postId: _posts.map(p => p.id) })
+						.groupBy('reaction."postId"');
+					if (addresses.length) {
+						builder.andWhere(`address in (:...address)`, { address: addresses });
+					}
+					const _reactions = (await builder.getRawMany()) as Reactions[];
+
+					_reactions.forEach(r => {
+						for (const _post of _posts) {
+							if (_post.id === r.postId) {
+								_post.addressReactions = r.addressReactions;
+								break;
+							}
+						}
+					});
+				}
+				return res.json(_posts);
+			}
+
+			const builder = getPostBuilder(feedId, addresses, adminMode, beforeTimestamp);
+
+			if (hashtag) {
+				builder.leftJoin('p.hashtags', 'hashtag').andWhere('hashtag.name in (:...hashtag)', { hashtag });
+			}
+
+			console.log(builder.getQueryAndParameters());
+
+			const _posts = await builder.getRawMany();
+
+			return res.json(_posts.map(post => postWithReactionToDTO(post, admins[feedId])));
+		} catch (e) {
+			console.error(e);
+			res.sendStatus(500);
+		}
+	});
+
 	router.get('/post', async (req, res) => {
 		try {
 			const { id: idRaw, adminMode: adminModeRaw } = req.query;
@@ -263,6 +419,27 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 			}
 			const sqlQuery = getPostsWithReactionsQuery({ whereClause, addressWhereClause });
 			const _posts = (await postRepository.query(sqlQuery, parameters)) as PostWithReactions[];
+			const post = _posts.length === 1 ? _posts[0] : null;
+
+			return res.json(post ? postWithReactionToDTO(post, post.feedId ? admins[post.feedId] : undefined) : null);
+		} catch (e) {
+			console.error(e);
+			res.sendStatus(500);
+		}
+	});
+
+	router.get('/v3/post', async (req, res) => {
+		try {
+			const { id: idRaw, adminMode: adminModeRaw, address: addressRaw } = req.query;
+			const id = String(idRaw);
+			const adminMode = adminModeRaw === 'true';
+			const addresses = addressRaw
+				? typeof addressRaw === 'string'
+					? [addressRaw.toLowerCase()]
+					: (addressRaw as string[]).map(a => a.toLowerCase())
+				: [];
+			const builder = getPostBuilder(id, addresses, adminMode);
+			const _posts = await builder.getRawOne();
 			const post = _posts.length === 1 ? _posts[0] : null;
 
 			return res.json(post ? postWithReactionToDTO(post, post.feedId ? admins[post.feedId] : undefined) : null);

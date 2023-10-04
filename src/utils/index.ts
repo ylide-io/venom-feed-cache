@@ -4,3 +4,5 @@ export const isEmoji = (str: string) =>
 	);
 
 export const extractHashtags = (text: string) => (text.match(/#\w+/g) || []) as string[];
+
+export const brackets = (query: string) => `(${query})`;

@@ -1,3 +1,4 @@
+// TODO: remove
 export const getPostsWithReactionsQuery = ({
 	whereClause = '',
 	orderByClause = '',
@@ -58,6 +59,7 @@ export const getPostsWithReactionsQuery = ({
     `;
 };
 
+// TODO: remove
 export const getReactionsForPosts = (
 	postIds: string[],
 	addresses: string[],
