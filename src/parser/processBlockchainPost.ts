@@ -166,7 +166,7 @@ export const processBlockchainPost = async (
 	try {
 		const hashtagsEntities = uniq(extractHashtags(post.contentText)).map(h => {
 			const e = new HashtagEntity();
-			e.name = h;
+			e.name = h.toLowerCase();
 			return e;
 		});
 		post.hashtags = hashtagsEntities;
