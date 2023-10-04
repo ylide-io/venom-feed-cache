@@ -21,7 +21,19 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 
 	const authorize = authorizationFactory();
 
-	const getPostBuilder = (feedId: string, addresses: string[], adminMode = false, beforeTimestamp?: number) => {
+	const getPostBuilder = ({
+		feedId,
+		addresses,
+		adminMode,
+		beforeTimestamp,
+		postId,
+	}: {
+		feedId?: string;
+		addresses: string[];
+		adminMode?: boolean;
+		beforeTimestamp?: number;
+		postId?: string;
+	}) => {
 		const reactionsCountSubQuery = reactionRepository
 			.createQueryBuilder('r')
 			.select(['r."postId"', 'r."reaction"', 'count(*) as count'])
@@ -65,8 +77,13 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 			)
 			.setParameters(addressReactionsSubQuery.getParameters())
 			.where('banned is false')
-			.andWhere('p."feedId" = :feedId', { feedId })
 			.limit(10);
+		if (feedId) {
+			builder.andWhere('p."feedId" = :feedId', { feedId });
+		}
+		if (postId) {
+			builder.andWhere('p."id" = :postId', { postId });
+		}
 		if (adminMode) {
 			builder
 				.andWhere('p."isAutobanned" is false')
@@ -344,7 +361,7 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 				return res.json(_posts);
 			}
 
-			const builder = getPostBuilder(feedId, addresses, adminMode, beforeTimestamp);
+			const builder = getPostBuilder({ feedId, addresses, adminMode, beforeTimestamp });
 
 			if (hashtag) {
 				builder.leftJoin('p.hashtags', 'hashtag').andWhere('hashtag.name in (:...hashtag)', { hashtag });
@@ -436,10 +453,8 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 					? [addressRaw.toLowerCase()]
 					: (addressRaw as string[]).map(a => a.toLowerCase())
 				: [];
-			const builder = getPostBuilder(id, addresses, adminMode);
-			const _posts = await builder.getRawOne();
-			const post = _posts.length === 1 ? _posts[0] : null;
-
+			const builder = getPostBuilder({ postId: id, addresses, adminMode });
+			const post = await builder.getRawOne();
 			return res.json(post ? postWithReactionToDTO(post, post.feedId ? admins[post.feedId] : undefined) : null);
 		} catch (e) {
 			console.error(e);
