@@ -120,13 +120,15 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 		}
 	}
 
-	(async () => {
-		for (const feed of feeds) {
-			console.log(`Building cache for ${feed.feedId} (${feed.title})`);
-			await updateCache(feed);
-		}
-		asyncTimer(updateAllCaches, 5 * 1000);
-	})();
+	if (process.env.NODE_ENV !== 'development') {
+		(async () => {
+			for (const feed of feeds) {
+				console.log(`Building cache for ${feed.feedId} (${feed.title})`);
+				await updateCache(feed);
+			}
+			asyncTimer(updateAllCaches, 5 * 1000);
+		})();
+	}
 
 	router.get('/posts', async (req, res) => {
 		try {

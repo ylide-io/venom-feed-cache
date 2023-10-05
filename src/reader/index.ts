@@ -8,6 +8,7 @@ import { predefinedTexts } from '../local-db/predefinedTexts';
 import { createAdminRouter } from './admin';
 import { createAuthRouter } from './auth';
 import { createFeedsRouter } from './feeds';
+import { createManagerRouter } from './manager';
 import { createPostsRouter } from './posts';
 import { createServiceStatusRouter } from './service-status';
 import { createSubscriptionRoute } from './subscription';
@@ -44,6 +45,7 @@ export async function startReader(port: number, db: DataSource) {
 	app.use('/', serviceStatusRouter);
 	app.use('/feeds', feedsRouter);
 	app.use('/subscription', createSubscriptionRoute());
+	app.use('/manager', createManagerRouter());
 
 	app.get('/get-idea', async (req, res) => {
 		try {
