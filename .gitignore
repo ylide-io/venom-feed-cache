@@ -34,3 +34,4 @@ yarn-error.log*
 
 status.txt
 newrelic_agent.log
+sql/*
