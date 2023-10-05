@@ -1,7 +1,8 @@
-import { IMessage, IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
+import { IMessage, IMessageContent, IMessageCorruptedContent, YMF } from '@ylide/sdk';
 import Redis from 'ioredis';
+import uniq from 'lodash.uniq';
 import { DECIMALS } from '../constants';
-import { postRepository } from '../database';
+import { postRepository, userRepository } from '../database';
 import { HashtagEntity } from '../entities/Hashtag.entity';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 import { bannedAddresses, feeds, getFeedComissions, predefinedTexts } from '../local-db';
@@ -15,7 +16,6 @@ import {
 } from '../utils/calcComissions';
 import { decryptBroadcastContent } from '../utils/decryptBroadcastContent';
 import { isGoodPost } from '../utils/goodWords';
-import uniq from 'lodash.uniq';
 import { sendTGAlert } from '../utils/telegram';
 
 export const processPostContent = (post: VenomFeedPostEntity, content: IMessageContent) => {
@@ -58,6 +58,7 @@ export const processBlockchainPost = async (
 	redis: Redis,
 	msg: IMessage,
 	content: IMessageContent | IMessageCorruptedContent | null,
+	webpush: any,
 ) => {
 	const post = new VenomFeedPostEntity();
 	post.id = msg.msgId;
@@ -139,28 +140,58 @@ export const processBlockchainPost = async (
 			if (post.contentText && post.contentText.includes('<reply-to id="')) {
 				const msgId = post.contentText.split('<reply-to id="')[1].split('"')[0];
 				if (msgId) {
-					postRepository
-						.findOne({ where: { id: msgId } })
-						.then(replyToPost => {
-							if (replyToPost) {
-								void redis.publish(
-									'ylide-broadcast-replies',
+					const replyToPost = await postRepository.findOne({ where: { id: msgId } });
+					if (replyToPost) {
+						void redis
+							.publish(
+								'ylide-broadcast-replies',
+								JSON.stringify({
+									data: {
+										originalPost: replyToPost,
+										replyPost: post,
+									},
+								}),
+							)
+							.catch(err => {
+								console.log('Failed to publish reply to redis: ', err);
+							});
+						const user = await userRepository.findOneBy({ address: replyToPost.sender });
+						if (user) {
+							void webpush
+								.sendNotification(
+									user.pushSubscription,
 									JSON.stringify({
-										data: {
-											originalPost: replyToPost,
-											replyPost: post,
+										feedId: replyToPost.feedId,
+										author: {
+											address: replyToPost.sender,
+											content: YMF.fromYMFText(replyToPost.contentText).toPlainText(),
+											postId: replyToPost.id,
+										},
+										reply: {
+											address: post.sender,
+											content: YMF.fromYMFText(post.contentText).toPlainText(),
+											postId: post.id,
 										},
 									}),
-								);
-							}
-						})
-						.catch(err => {
-							// do nothing
-						});
+								)
+								.catch((e: any) => {
+									console.log(
+										`Failed to send push - ${user.address}. Error: ${e.name} | ${e.message} | ${e.body} | ${e.statusCode}`,
+									);
+									if (e.statusCode === 410) {
+										console.log(
+											`Push subscription has unsubscribed or expired. Removing for ${user.address}...`,
+										);
+										userRepository.remove(user);
+									}
+								})
+								.catch((e: any) => {});
+						}
+					}
 				}
 			}
 		} catch (err) {
-			// do nothing
+			console.log(err);
 		}
 	}
 	try {

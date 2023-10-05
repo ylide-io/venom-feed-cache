@@ -78,7 +78,6 @@ export const authorizationFactory = () => {
 				const bearerToken = bearer[1];
 				const address = jwt.verify(bearerToken, JWT_KEY) as string;
 				if (isValidAddress(address)) {
-					// @ts-ignore
 					req.userAddress = address;
 					return next();
 				}

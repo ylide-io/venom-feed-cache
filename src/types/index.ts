@@ -101,3 +101,14 @@ export type Reactions = {
 	postId: string;
 	addressReactions: Record<string, string>;
 };
+
+export type SubscriptionPayload = {
+	subscription: {
+		endpoint: string;
+		expirationTime?: number | null;
+		keys: {
+			p256dh: string;
+			auth: string;
+		};
+	};
+};

@@ -25,7 +25,7 @@ async function run() {
 	} else if (process.env.PARSER === 'true') {
 		console.log('Starting parser...');
 		const { redis } = await createMessageBus(env);
-		await startBlockchainFeedParser(redis);
+		await startBlockchainFeedParser(redis, env);
 	}
 }
 

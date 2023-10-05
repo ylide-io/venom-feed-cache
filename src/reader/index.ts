@@ -1,15 +1,16 @@
-import v8 from 'v8';
-import express from 'express';
 import bodyParser from 'body-parser';
-import { DataSource } from 'typeorm';
 import cors from 'cors';
-import { predefinedTexts } from '../local-db/predefinedTexts';
-import { createPostsRouter } from './posts';
-import { createAdminRouter } from './admin';
-import { createServiceStatusRouter } from './service-status';
-import { createFeedsRouter } from './feeds';
+import express from 'express';
+import { DataSource } from 'typeorm';
+import v8 from 'v8';
 import { admins } from '../local-db';
+import { predefinedTexts } from '../local-db/predefinedTexts';
+import { createAdminRouter } from './admin';
 import { createAuthRouter } from './auth';
+import { createFeedsRouter } from './feeds';
+import { createPostsRouter } from './posts';
+import { createServiceStatusRouter } from './service-status';
+import { createSubscriptionRoute } from './subscription';
 
 export async function startReader(port: number, db: DataSource) {
 	const app = express();
@@ -42,6 +43,7 @@ export async function startReader(port: number, db: DataSource) {
 	app.use('/', adminRouter);
 	app.use('/', serviceStatusRouter);
 	app.use('/feeds', feedsRouter);
+	app.use('/subscription', createSubscriptionRoute());
 
 	app.get('/get-idea', async (req, res) => {
 		try {

@@ -9,9 +9,6 @@
 		"dev:reader": "READER=true ts-node-dev --respawn --transpile-only ./src/index.ts"
 	},
 	"dependencies": {
-		"@types/lodash.uniq": "^4.5.7",
-		"@ylide/sdk": "0.9.0-beta.8",
-		"@ylide/smart-buffer": "0.0.17",
 		"body-parser": "1.20.2",
 		"cookie-parser": "1.4.6",
 		"core-decorators": "0.20.0",
@@ -27,9 +24,14 @@
 		"pg": "8.11.1",
 		"pg-format": "1.0.4",
 		"reflect-metadata": "0.1.13",
-		"typeorm": "0.3.17"
+		"typeorm": "0.3.17",
+		"web-push": "^3.6.6"
 	},
 	"devDependencies": {
+		"@types/lodash.uniq": "^4.5.7",
+		"@types/web-push": "^3.6.1",
+		"@ylide/sdk": "0.9.0-beta.8",
+		"@ylide/smart-buffer": "0.0.17",
 		"@types/body-parser": "1.19.2",
 		"@types/cookie-parser": "1.4.3",
 		"@types/cors": "2.8.13",

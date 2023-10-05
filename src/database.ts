@@ -10,6 +10,7 @@ import { FeedEntity } from './entities/Feed.entity';
 import { FeedPostReactionEntity } from './entities/FeedPostReaction.entity';
 import { HashtagEntity } from './entities/Hashtag.entity';
 import { PredefinedTextEntity } from './entities/PredefinedText.entity';
+import { UserEntity } from './entities/User.entity';
 import { VenomFeedPostEntity } from './entities/VenomFeedPost.entity';
 
 export const createMessageBus = async (env: DotenvParseOutput) => {
@@ -50,6 +51,7 @@ export const AppDataSource = new DataSource({
 		FeedEntity,
 		FeedPostReactionEntity,
 		HashtagEntity,
+		UserEntity,
 	],
 	subscribers: [],
 	migrations: [],
@@ -63,3 +65,4 @@ export const adminRepository = AppDataSource.getRepository(AdminEntity);
 export const feedRepository = AppDataSource.getRepository(FeedEntity);
 export const reactionRepository = AppDataSource.getRepository(FeedPostReactionEntity);
 export const hashtagRepository = AppDataSource.getRepository(HashtagEntity);
+export const userRepository = AppDataSource.getRepository(UserEntity);

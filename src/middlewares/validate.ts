@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import Joi from 'joi';
+import { SubscriptionPayload } from '../types';
 
 const JoiId = Joi.alternatives().try(Joi.string(), Joi.array().items(Joi.string()));
 
@@ -58,6 +59,25 @@ export const validateBanPost = (req: Request, res: Response, next: NextFunction)
 	}
 	if (typeof req.query.secret !== 'string' || !process.env.ADMIN_SECRET?.split(',').includes(req.query.secret)) {
 		return res.status(400).json({ error: 'Wrong admin secret' });
+	}
+	next();
+};
+
+const subscriptionSchema = Joi.object<SubscriptionPayload>({
+	subscription: Joi.object({
+		endpoint: Joi.string(),
+		expirationTime: Joi.number().allow(null).optional(),
+		keys: Joi.object({
+			p256dh: Joi.string(),
+			auth: Joi.string(),
+		}),
+	}).required(),
+});
+
+export const validateSubscription = (req: Request, res: Response, next: NextFunction) => {
+	const { error } = subscriptionSchema.validate(req.body);
+	if (error) {
+		return res.status(400).json({ error: error.details[0].message });
 	}
 	next();
 };

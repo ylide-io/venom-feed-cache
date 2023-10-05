@@ -1,22 +1,21 @@
-import { IMessage, IndexerHub, Uint256, asyncTimer } from '@ylide/sdk';
+import { IMessage, IndexerHub, asyncTimer } from '@ylide/sdk';
 import Redis from 'ioredis';
 
-import { feeds, updatePosts } from '../local-db';
-import { sendTGAlert } from '../utils/telegram';
+import { DotenvParseOutput } from 'dotenv';
+import webpush from 'web-push';
 import { postRepository } from '../database';
-import { FeedEntity } from '../entities/Feed.entity';
 import { retry } from '../utils/retry';
+import { sendTGAlert } from '../utils/telegram';
 import { processBlockchainPost } from './processBlockchainPost';
-import { constructGenericEvmFeedId, constructGenericTvmFeedId } from '../utils/copy-to-delete';
 
-const processPost = async (indexerHub: IndexerHub, redis: Redis, msg: IMessage) => {
+const processPost = async (indexerHub: IndexerHub, redis: Redis, msg: IMessage, webpush: any) => {
 	const start = Date.now();
 	const content = await retry(() => indexerHub.requestContent(msg));
 	const end = Date.now();
 	if (end - start > 300) {
 		console.log(`WARN: retrieving message content took ${end - start}ms: `, msg.msgId);
 	}
-	return await processBlockchainPost(redis, msg, content);
+	return await processBlockchainPost(redis, msg, content, webpush);
 };
 
 const idxRequest = async (url: string, body: any, timeout = 5000) => {
@@ -41,7 +40,7 @@ const idxRequest = async (url: string, body: any, timeout = 5000) => {
 	}
 };
 
-async function updateFeed(indexerHub: IndexerHub, redis: Redis) {
+async function updateFeed(indexerHub: IndexerHub, redis: Redis, webpush: any) {
 	let lastPost: any = null;
 	let i = 0;
 	const changedFeeds = new Set<string>();
@@ -89,7 +88,7 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis) {
 			if (exists) {
 				return { changedFeeds, totalNewPosts };
 			}
-			const { post, feed } = await processPost(indexerHub, redis, msg);
+			const { post, feed } = await processPost(indexerHub, redis, msg, webpush);
 			if (feed) {
 				changedFeeds.add(feed.feedId);
 			}
@@ -100,13 +99,18 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis) {
 	}
 }
 
-export const startBlockchainFeedParser = async (redis: Redis) => {
+export const startBlockchainFeedParser = async (redis: Redis, env: DotenvParseOutput) => {
 	const indexerHub = new IndexerHub();
+	try {
+		webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
+	} catch (error) {
+		console.log('WebPush error: ' + error);
+	}
 	let consequentErrors = 0;
 
 	const updateAllFeeds = async () => {
 		try {
-			const { totalNewPosts } = await updateFeed(indexerHub, redis);
+			const { totalNewPosts } = await updateFeed(indexerHub, redis, webpush);
 			consequentErrors = 0;
 			console.log(`[${new Date().toISOString()}] Feed updated: ${totalNewPosts} new posts`);
 		} catch (e: any) {
