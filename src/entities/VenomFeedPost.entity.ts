@@ -26,6 +26,7 @@ export class VenomFeedPostEntity {
 	blockchain!: string;
 
 	@Column({ type: 'text' })
+	@Index()
 	sender!: string;
 
 	@Column({ type: 'jsonb' })
