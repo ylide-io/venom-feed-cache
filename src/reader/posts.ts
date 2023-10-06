@@ -518,5 +518,25 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 		res.status(200).json({ bannedPosts: result.map(e => e.id) });
 	});
 
+	router.post('/posts/statistic', async (req, res) => {
+		try {
+			const feedIds = req.body.feedIds as string[];
+			if (feedIds.length > 20) {
+				res.status(400).json('Too many feeds');
+				return;
+			}
+			const result = await postRepository
+				.createQueryBuilder('post')
+				.select(['post."feedId"', 'count(*) "totalMessages"', 'count(distinct(post.sender)) "uniqSenders"'])
+				.where(`"feedId" in (:...feedIds)`, { feedIds })
+				.groupBy('post."feedId"')
+				.getRawMany();
+			res.status(200).json(result);
+		} catch (error) {
+			console.log(error);
+			res.sendStatus(500);
+		}
+	});
+
 	return { router };
 };
