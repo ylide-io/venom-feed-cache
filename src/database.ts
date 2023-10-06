@@ -55,7 +55,6 @@ export const AppDataSource = new DataSource({
 	],
 	subscribers: [],
 	migrations: [],
-	cache: true,
 	synchronize: process.env.POSTGRES_SYNC === 'true',
 });
 

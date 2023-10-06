@@ -14,6 +14,7 @@ import { brackets, isEmoji } from '../utils';
 import asyncTimer from '../utils/asyncTimer';
 import { constructGenericEvmFeedId, constructGenericTvmFeedId } from '../utils/copy-to-delete';
 import { getPostsWithReactionsQuery, getReactionsForPosts } from '../utils/queries';
+import { sendTGAlert } from '../utils/telegram';
 import { authorizationFactory } from '../utils/ylide-auth';
 
 export const createPostsRouter: () => Promise<{ router: express.Router }> = async () => {
@@ -521,18 +522,25 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 	router.post('/posts/statistic', async (req, res) => {
 		try {
 			const feedIds = req.body.feedIds as string[];
-			if (feedIds.length > 20) {
+			if (feedIds.length > 15) {
 				res.status(400).json('Too many feeds');
 				return;
 			}
+			const start = Date.now();
 			const result = await postRepository
 				.createQueryBuilder('post')
 				.select(['post."feedId"', 'count(*) "totalMessages"', 'count(distinct(post.sender)) "uniqSenders"'])
 				.where(`"feedId" in (:...feedIds)`, { feedIds })
 				.groupBy('post."feedId"')
-				// 5 minutes
-				.cache(5 * 60 * 1000)
 				.getRawMany();
+			const end = Date.now();
+			const took = end - start;
+			if (took > 500) {
+				console.log(`/posts/statistic took: ${took}ms`);
+				if (took > 3000) {
+					sendTGAlert(`BlockchainFeed: /posts/statistic took more than 3s: ${took}ms`);
+				}
+			}
 			res.status(200).json(result);
 		} catch (error) {
 			console.log(error);

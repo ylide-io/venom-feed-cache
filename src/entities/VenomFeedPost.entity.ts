@@ -3,6 +3,7 @@ import { FeedPostReactionEntity } from './FeedPostReaction.entity';
 import { HashtagEntity } from './Hashtag.entity';
 
 @Entity()
+@Index(['feedId', 'sender'])
 @Index(['banned', 'feedId', 'createTimestamp'])
 @Index(['banned', 'originalFeedId', 'createTimestamp'])
 export class VenomFeedPostEntity {
