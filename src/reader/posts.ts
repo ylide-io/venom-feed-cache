@@ -530,6 +530,8 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 				.select(['post."feedId"', 'count(*) "totalMessages"', 'count(distinct(post.sender)) "uniqSenders"'])
 				.where(`"feedId" in (:...feedIds)`, { feedIds })
 				.groupBy('post."feedId"')
+				// 5 minutes
+				.cache(5 * 60 * 1000)
 				.getRawMany();
 			res.status(200).json(result);
 		} catch (error) {
