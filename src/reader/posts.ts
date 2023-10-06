@@ -22,6 +22,8 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 
 	const authorize = authorizationFactory();
 
+	const feedIds = process.env.STATISTIC_FEED_ID!.split(',') as string[];
+
 	const getPostBuilder = ({
 		feedId,
 		addresses,
@@ -519,9 +521,12 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 		res.status(200).json({ bannedPosts: result.map(e => e.id) });
 	});
 
-	router.post('/posts/statistic', async (req, res) => {
+	router.get('/posts/statistic', async (req, res) => {
 		try {
-			const feedIds = req.body.feedIds as string[];
+			if (feedIds.length === 0) {
+				res.status(400).json('No feeds');
+				return;
+			}
 			if (feedIds.length > 15) {
 				res.status(400).json('Too many feeds');
 				return;
