@@ -20,7 +20,7 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 		}
 	});
 
-	const sendPush = async (address: string, data: { type: 'direct' | 'reply'; body: any }) => {
+	const sendPush = async (address: string, data: { type: 'INCOMING_MAIL' | 'POST_REPLY'; body: any }) => {
 		const user = await userRepository.findOneBy({ address });
 		if (user?.pushSubscription) {
 			console.log(`Sending push to ${user.address}. Type: ${data.type}`);
@@ -54,7 +54,7 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 						address = '0:' + body.recipientAddress.toLowerCase();
 					}
 					sendPush(address, {
-						type: 'direct',
+						type: 'INCOMING_MAIL',
 						body: {
 							senderAddress: body.senderAddress,
 							recipientAddress: address,
@@ -71,7 +71,7 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 						replyPost: VenomFeedPostEntity;
 					};
 					sendPush(replyPost.sender, {
-						type: 'reply',
+						type: 'POST_REPLY',
 						body: {
 							feedId: originalPost.feedId,
 							author: {
