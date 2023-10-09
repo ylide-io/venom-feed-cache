@@ -16,24 +16,26 @@ async function run() {
 	const pool = await AppDataSource.initialize();
 	console.log('Database connected');
 
-	await updatePredefinedTexts();
-	await updateBannedAddresses();
-	await updateFeeds();
-
-	console.log('Caches pre-populated');
-
-	if (env.READER === 'true') {
-		console.log('Starting reader...');
-		await startReader(Number(env.PORT), pool);
-	} else if (env.PARSER === 'true') {
-		console.log('Starting parser...');
-		const { redis } = await createMessageBus(env);
-		await startBlockchainFeedParser(redis);
-	} else if (env.PUSHER === 'true') {
+	if (env.PUSHER === 'true') {
 		console.log('Starting pusher...');
 		const { redis } = await createMessageBus(env);
 		webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
 		await startPusher(redis, env);
+	} else {
+		await updatePredefinedTexts();
+		await updateBannedAddresses();
+		await updateFeeds();
+
+		console.log('Caches pre-populated');
+
+		if (env.READER === 'true') {
+			console.log('Starting reader...');
+			await startReader(Number(env.PORT), pool);
+		} else if (env.PARSER === 'true') {
+			console.log('Starting parser...');
+			const { redis } = await createMessageBus(env);
+			await startBlockchainFeedParser(redis);
+		}
 	}
 }
 
