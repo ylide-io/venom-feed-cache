@@ -20,5 +20,14 @@ module.exports = {
 				PARSER: 'true',
 			},
 		},
+		{
+			name: 'pusher',
+			script: './build/index.js',
+			max_memory_restart: '1200M',
+			node_args: ['--max-old-space-size=1024'],
+			env: {
+				PUSHER: 'true',
+			},
+		},
 	],
 };

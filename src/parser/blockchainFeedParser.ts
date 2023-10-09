@@ -1,21 +1,19 @@
 import { IMessage, IndexerHub, asyncTimer } from '@ylide/sdk';
 import Redis from 'ioredis';
 
-import { DotenvParseOutput } from 'dotenv';
-import webpush from 'web-push';
 import { postRepository } from '../database';
 import { retry } from '../utils/retry';
 import { sendTGAlert } from '../utils/telegram';
 import { processBlockchainPost } from './processBlockchainPost';
 
-const processPost = async (indexerHub: IndexerHub, redis: Redis, msg: IMessage, webpush: any) => {
+const processPost = async (indexerHub: IndexerHub, redis: Redis, msg: IMessage) => {
 	const start = Date.now();
 	const content = await retry(() => indexerHub.requestContent(msg));
 	const end = Date.now();
 	if (end - start > 300) {
 		console.log(`WARN: retrieving message content took ${end - start}ms: `, msg.msgId);
 	}
-	return await processBlockchainPost(redis, msg, content, webpush);
+	return await processBlockchainPost(redis, msg, content);
 };
 
 const idxRequest = async (url: string, body: any, timeout = 5000) => {
@@ -40,7 +38,7 @@ const idxRequest = async (url: string, body: any, timeout = 5000) => {
 	}
 };
 
-async function updateFeed(indexerHub: IndexerHub, redis: Redis, webpush: any) {
+async function updateFeed(indexerHub: IndexerHub, redis: Redis) {
 	let lastPost: any = null;
 	let i = 0;
 	const changedFeeds = new Set<string>();
@@ -88,7 +86,7 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis, webpush: any) {
 			if (exists) {
 				return { changedFeeds, totalNewPosts };
 			}
-			const { post, feed } = await processPost(indexerHub, redis, msg, webpush);
+			const { post, feed } = await processPost(indexerHub, redis, msg);
 			if (feed) {
 				changedFeeds.add(feed.feedId);
 			}
@@ -99,18 +97,13 @@ async function updateFeed(indexerHub: IndexerHub, redis: Redis, webpush: any) {
 	}
 }
 
-export const startBlockchainFeedParser = async (redis: Redis, env: DotenvParseOutput) => {
+export const startBlockchainFeedParser = async (redis: Redis) => {
 	const indexerHub = new IndexerHub();
-	try {
-		webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
-	} catch (error) {
-		console.log('WebPush error: ' + error);
-	}
 	let consequentErrors = 0;
 
 	const updateAllFeeds = async () => {
 		try {
-			const { totalNewPosts } = await updateFeed(indexerHub, redis, webpush);
+			const { totalNewPosts } = await updateFeed(indexerHub, redis);
 			consequentErrors = 0;
 			console.log(`[${new Date().toISOString()}] Feed updated: ${totalNewPosts} new posts`);
 		} catch (e: any) {

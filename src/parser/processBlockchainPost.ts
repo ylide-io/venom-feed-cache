@@ -58,7 +58,6 @@ export const processBlockchainPost = async (
 	redis: Redis,
 	msg: IMessage,
 	content: IMessageContent | IMessageCorruptedContent | null,
-	webpush: any,
 ) => {
 	const post = new VenomFeedPostEntity();
 	post.id = msg.msgId;
@@ -155,38 +154,6 @@ export const processBlockchainPost = async (
 							.catch(err => {
 								console.log('Failed to publish reply to redis: ', err);
 							});
-						const user = await userRepository.findOneBy({ address: replyToPost.sender });
-						if (user) {
-							void webpush
-								.sendNotification(
-									user.pushSubscription,
-									JSON.stringify({
-										feedId: replyToPost.feedId,
-										author: {
-											address: replyToPost.sender,
-											content: YMF.fromYMFText(replyToPost.contentText).toPlainText(),
-											postId: replyToPost.id,
-										},
-										reply: {
-											address: post.sender,
-											content: YMF.fromYMFText(post.contentText).toPlainText(),
-											postId: post.id,
-										},
-									}),
-								)
-								.catch((e: any) => {
-									console.log(
-										`Failed to send push - ${user.address}. Error: ${e.name} | ${e.message} | ${e.body} | ${e.statusCode}`,
-									);
-									if (e.statusCode === 410) {
-										console.log(
-											`Push subscription has unsubscribed or expired. Removing for ${user.address}...`,
-										);
-										userRepository.remove(user);
-									}
-								})
-								.catch((e: any) => {});
-						}
 					}
 				}
 			}
