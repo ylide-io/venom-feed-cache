@@ -23,6 +23,7 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 	const sendPush = async (address: string, data: { type: 'direct' | 'reply'; body: any }) => {
 		const user = await userRepository.findOneBy({ address });
 		if (user?.pushSubscription) {
+			console.log(`Sending push to ${user.address}. Type: ${data.type}`);
 			void webpush.sendNotification(user.pushSubscription, JSON.stringify(data)).catch((e: any) => {
 				console.log(
 					`Failed to send push - ${user.address}. Error: ${e.name} | ${e.message} | ${e.body} | ${e.statusCode}`,
@@ -39,7 +40,6 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 
 	redis.on('message', async (channel, message) => {
 		try {
-			console.log(`Received message from channel ${channel as string}:`, message);
 			if (channel === 'ylide-direct-messages') {
 				try {
 					const msg = JSON.parse(message);
