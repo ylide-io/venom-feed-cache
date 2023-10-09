@@ -15,7 +15,6 @@ async function run() {
 	console.log('Start');
 	const pool = await AppDataSource.initialize();
 	console.log('Database connected');
-	console.log(env);
 
 	if (process.env.PUSHER === 'true') {
 		console.log('Starting pusher...');
