@@ -58,6 +58,7 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 						body: {
 							senderAddress: body.senderAddress,
 							recipientAddress: address,
+							msdId: body.msgId,
 						},
 					});
 				} catch (err) {
