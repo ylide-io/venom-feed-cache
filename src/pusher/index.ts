@@ -71,7 +71,7 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 						originalPost: VenomFeedPostEntity;
 						replyPost: VenomFeedPostEntity;
 					};
-					sendPush(replyPost.sender, {
+					sendPush(originalPost.sender, {
 						type: 'POST_REPLY',
 						body: {
 							feedId: originalPost.feedId,
