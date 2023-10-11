@@ -71,7 +71,6 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 						originalPost: VenomFeedPostEntity;
 						replyPost: VenomFeedPostEntity;
 					};
-					console.log(`ylide-broadcast-replies. Origin: ${originalPost.sender}. Reply: ${replyPost.sender}}`);
 					sendPush(originalPost.sender, {
 						type: 'POST_REPLY',
 						body: {
