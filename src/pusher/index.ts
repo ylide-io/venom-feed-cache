@@ -21,7 +21,7 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 	});
 
 	const sendPush = async (address: string, data: { type: 'INCOMING_MAIL' | 'POST_REPLY'; body: any }) => {
-		const user = await userRepository.findOneBy({ address });
+		const user = await userRepository.findOneBy({ address: address.toLowerCase() });
 		if (user?.pushSubscription) {
 			console.log(`Sending push to ${user.address}. Type: ${data.type}`);
 			void webpush.sendNotification(user.pushSubscription, JSON.stringify(data)).catch((e: any) => {
@@ -49,9 +49,9 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 					}
 					let address: string;
 					if (body.recipientAddress.startsWith('000000000000000000000000')) {
-						address = '0x' + body.recipientAddress.substring(24).toLowerCase();
+						address = '0x' + body.recipientAddress.substring(24);
 					} else {
-						address = '0:' + body.recipientAddress.toLowerCase();
+						address = '0:' + body.recipientAddress;
 					}
 					sendPush(address, {
 						type: 'INCOMING_MAIL',
@@ -71,6 +71,7 @@ export const startPusher = async (redis: Redis, webpush: any) => {
 						originalPost: VenomFeedPostEntity;
 						replyPost: VenomFeedPostEntity;
 					};
+					console.log(`ylide-broadcast-replies. Origin: ${originalPost.sender}. Reply: ${replyPost.sender}}`);
 					sendPush(originalPost.sender, {
 						type: 'POST_REPLY',
 						body: {
