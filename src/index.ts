@@ -20,7 +20,7 @@ async function run() {
 		console.log('Starting pusher...');
 		const { redis } = await createMessageBus(env);
 		webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
-		await startPusher(redis, webpush);
+		await startPusher(redis, webpush.sendNotification);
 	} else {
 		await updatePredefinedTexts();
 		await updateBannedAddresses();

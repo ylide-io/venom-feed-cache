@@ -1,4 +1,5 @@
 import express from 'express';
+import isEqual from 'lodash.isequal';
 import { userRepository } from '../database';
 import { UserEntity } from '../entities/User.entity';
 import { validateSubscription } from '../middlewares/validate';
@@ -16,12 +17,17 @@ export const createSubscriptionRoute = (): express.Router => {
 			const { subscription } = req.body as SubscriptionPayload;
 			const userExists = await userRepository.findOneBy({ address });
 			if (userExists) {
-				userExists.pushSubscription = subscription;
-				await userRepository.save(userExists);
+				if (!userExists.pushSubscription) {
+					userExists.pushSubscription = [subscription];
+					await userRepository.save(userExists);
+				} else if (userExists.pushSubscription.every(s => !isEqual(s, subscription))) {
+					userExists.pushSubscription.push(subscription);
+					await userRepository.save(userExists);
+				}
 			} else {
 				const newUser = new UserEntity();
 				newUser.address = address;
-				newUser.pushSubscription = subscription;
+				newUser.pushSubscription = [subscription];
 				await userRepository.save(newUser);
 			}
 			res.sendStatus(200);

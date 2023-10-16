@@ -7,5 +7,5 @@ export class UserEntity {
 	address!: string;
 
 	@Column({ type: 'jsonb' })
-	pushSubscription!: webpush.PushSubscription;
+	pushSubscription!: webpush.PushSubscription[];
 }
