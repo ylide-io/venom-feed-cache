@@ -12,6 +12,7 @@ import { createManagerRouter } from './manager';
 import { createPostsRouter } from './posts';
 import { createServiceStatusRouter } from './service-status';
 import { createSubscriptionRoute } from './subscription';
+import { promises as fs } from 'fs';
 
 export async function startReader(port: number, db: DataSource) {
 	const app = express();
@@ -84,6 +85,15 @@ export async function startReader(port: number, db: DataSource) {
 			return res.end('OK');
 		} catch {
 			return res.end('NO');
+		}
+	});
+
+	app.get('/check', async (req, res) => {
+		try {
+			await fs.writeFile(`headers-${Date.now()}`, JSON.stringify(req.headers), 'utf8');
+			res.sendStatus(200);
+		} catch (error) {
+			res.sendStatus(500);
 		}
 	});
 
