@@ -119,6 +119,7 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 							'0x15a33D60283e3D20751D6740162D1212c1ad2a2d',
 							'0x0962C57d9e451df7905d40cb1b33F179d75f6Af0',
 							'0x52E316E323C35e5B222BA63311433F91d80545EE',
+							'0x0c386867628470786a90fd88809dafb7ca1d3173',
 						];
 						const users = await userRepository.find({
 							where: { address: In(ylideManagers.map(a => a.toLowerCase())) },
