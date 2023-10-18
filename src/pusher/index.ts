@@ -38,7 +38,7 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 			console.log(`Sending push to ${user.address}. Type: ${data.type}`);
 			return Promise.all(
 				user.pushSubscription.map(async s => {
-					return sendNotification(s, JSON.stringify(data)).catch((e: any) => {
+					return sendNotification(s, JSON.stringify(data)).catch((e: any): any => {
 						console.log(
 							`Failed to send push - ${user.address}. Error: ${e.name} | ${e.message} | ${e.body} | ${e.statusCode}`,
 						);
@@ -47,6 +47,14 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 								`Push subscription has unsubscribed or expired. Removing for ${user.address}...`,
 							);
 							const pushSubscription = user.pushSubscription.filter(_s => !isEqual(s, _s));
+							if (pushSubscription.length === 0) {
+								console.log(
+									`No more push subscriptions for ${user.address}. Removing from database...`,
+								);
+								return userRepository.remove(user).catch(e => {
+									console.log(`Failed to remove user ${user.address} from database: `, e);
+								});
+							}
 							return userRepository.update(user.address, { pushSubscription }).catch(e => {
 								console.log(`Failed to remove user ${user.address} from database: `, e);
 							});
@@ -125,9 +133,9 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 							'0x0962C57d9e451df7905d40cb1b33F179d75f6Af0',
 							'0x52E316E323C35e5B222BA63311433F91d80545EE',
 							'0x0c386867628470786a90fd88809dafb7ca1d3173',
-						];
+						].map(a => a.toLowerCase());
 						const users = await userRepository.find({
-							where: { address: In(ylideManagers.map(a => a.toLowerCase())) },
+							where: { address: In(ylideManagers) },
 						});
 						users.forEach(
 							u =>
