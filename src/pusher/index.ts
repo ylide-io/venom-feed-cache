@@ -3,6 +3,7 @@ import { Redis } from 'ioredis';
 import isEqual from 'lodash.isequal';
 import { In } from 'typeorm';
 import type { sendNotification as SendNotification } from 'web-push';
+import { GLOBAL_YLIDE_FEED_PRODUCTION, GLOBAL_YLIDE_FEED_TESTING } from '../constants';
 import { userRepository } from '../database';
 import { UserEntity } from '../entities/User.entity';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
@@ -35,20 +36,24 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 	const sendPush = async (user: UserEntity, data: { type: 'INCOMING_MAIL' | 'POST_REPLY'; body: any }) => {
 		if (user?.pushSubscription) {
 			console.log(`Sending push to ${user.address}. Type: ${data.type}`);
-			user.pushSubscription.forEach(s => {
-				void sendNotification(s, JSON.stringify(data)).catch((e: any) => {
-					console.log(
-						`Failed to send push - ${user.address}. Error: ${e.name} | ${e.message} | ${e.body} | ${e.statusCode}`,
-					);
-					if (e.statusCode === 410) {
-						console.log(`Push subscription has unsubscribed or expired. Removing for ${user.address}...`);
-						const pushSubscription = user.pushSubscription.filter(_s => !isEqual(s, _s));
-						return userRepository.update(user.address, { pushSubscription }).catch(e => {
-							console.log(`Failed to remove user ${user.address} from database: `, e);
-						});
-					}
-				});
-			});
+			return Promise.all(
+				user.pushSubscription.map(async s => {
+					return sendNotification(s, JSON.stringify(data)).catch((e: any) => {
+						console.log(
+							`Failed to send push - ${user.address}. Error: ${e.name} | ${e.message} | ${e.body} | ${e.statusCode}`,
+						);
+						if (e.statusCode === 410) {
+							console.log(
+								`Push subscription has unsubscribed or expired. Removing for ${user.address}...`,
+							);
+							const pushSubscription = user.pushSubscription.filter(_s => !isEqual(s, _s));
+							return userRepository.update(user.address, { pushSubscription }).catch(e => {
+								console.log(`Failed to remove user ${user.address} from database: `, e);
+							});
+						}
+					});
+				}),
+			);
 		}
 	};
 
@@ -69,7 +74,7 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 					}
 					const user = await userRepository.findOneBy({ address: address.toLowerCase() });
 					if (user) {
-						sendPush(user, {
+						void sendPush(user, {
 							type: 'INCOMING_MAIL',
 							body: {
 								senderAddress: body.senderAddress,
@@ -90,7 +95,7 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 					};
 					const user = await userRepository.findOneBy({ address: originalPost.sender.toLowerCase() });
 					if (user) {
-						sendPush(user, {
+						void sendPush(user, {
 							type: 'POST_REPLY',
 							body: {
 								feedId: originalPost.feedId,
@@ -112,7 +117,7 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 				try {
 					const msg = JSON.parse(message);
 					const body: IMessage = msg.data;
-					if (body.feedId === '2f7830e20327e66bf30cf799fe843f309bd2d48755e197945a61e62b58eda151') {
+					if (body.feedId === GLOBAL_YLIDE_FEED_TESTING) {
 						const ylideManagers = [
 							'0x9Eb187e2b5280c41b1e6723b0F215331a099dc65',
 							'0x9B44ed2A5de91f4E9109453434825a32FF2fD6e7',
@@ -124,16 +129,43 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 						const users = await userRepository.find({
 							where: { address: In(ylideManagers.map(a => a.toLowerCase())) },
 						});
-						users.forEach(u =>
-							sendPush(u, {
-								type: 'INCOMING_MAIL',
-								body: {
-									senderAddress: body.senderAddress,
-									recipientAddress: u.address,
-									msgId: body.msgId,
-								},
-							}),
+						users.forEach(
+							u =>
+								void sendPush(u, {
+									type: 'INCOMING_MAIL',
+									body: {
+										senderAddress: body.senderAddress,
+										recipientAddress: u.address,
+										msgId: body.msgId,
+									},
+								}),
 						);
+					} else if (body.feedId === GLOBAL_YLIDE_FEED_PRODUCTION) {
+						let offset = 0;
+						const limit = 100;
+						while (true) {
+							const [users, totalCount] = await userRepository.findAndCount({
+								skip: offset,
+								take: limit,
+							});
+							console.log(`Sending global push: ${offset} - ${offset + limit} / ${totalCount}`);
+							await Promise.all(
+								users.map(u =>
+									sendPush(u, {
+										type: 'INCOMING_MAIL',
+										body: {
+											senderAddress: body.senderAddress,
+											recipientAddress: u.address,
+											msgId: body.msgId,
+										},
+									}),
+								),
+							);
+							if (offset + limit >= totalCount) {
+								break;
+							}
+							offset += limit;
+						}
 					}
 				} catch (err) {
 					console.log('Failed to parse message: ', err);
