@@ -3,25 +3,11 @@ import { postRepository, bannedAddressRepository } from '../database';
 import { bannedAddresses } from '../local-db/bannedAddresses';
 import { feeds } from '../local-db/feeds';
 import { validateBanPost, validateBanAddresses } from '../middlewares/validate';
-import { posts, postsWithReactions } from '../local-db/posts';
-import { updatePostsInAllFeeds } from '../local-db';
+import { postsWithReactions } from '../local-db/posts';
+import { updatePostsWithReactionsInAllFeeds } from '../local-db';
 
 export const createAdminRouter: () => Promise<{ router: express.Router }> = async () => {
 	const router = express.Router();
-
-	router.post('/ban-posts', validateBanPost, async (req, res) => {
-		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
-		await postRepository.update(ids, { banned: true });
-		for (const id of ids) {
-			for (const feed of feeds) {
-				const idx = posts[feed.feedId] ? posts[feed.feedId].findIndex(p => p.id === id) : -1;
-				if (idx !== -1) {
-					posts[feed.feedId].splice(idx, 1);
-				}
-			}
-		}
-		res.sendStatus(201);
-	});
 
 	router.post('/v2/ban-posts', validateBanPost, async (req, res) => {
 		const ids = typeof req.query.id === 'string' ? [req.query.id] : (req.query.id as string[]);
@@ -55,7 +41,7 @@ export const createAdminRouter: () => Promise<{ router: express.Router }> = asyn
 					.map(a => `'${a}'`)
 					.join(', ')})`,
 			);
-			await updatePostsInAllFeeds();
+			await updatePostsWithReactionsInAllFeeds();
 		}
 		res.sendStatus(201);
 	});
@@ -63,7 +49,7 @@ export const createAdminRouter: () => Promise<{ router: express.Router }> = asyn
 	router.delete('/unban-addresses', validateBanAddresses, async (req, res) => {
 		const addresses = typeof req.query.address === 'string' ? [req.query.address] : (req.query.address as string[]);
 		await bannedAddressRepository.delete(addresses);
-		await updatePostsInAllFeeds();
+		await updatePostsWithReactionsInAllFeeds();
 		res.sendStatus(201);
 	});
 

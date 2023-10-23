@@ -1,13 +1,12 @@
 import { Uint256 } from '@ylide/sdk';
 import express from 'express';
-import { LessThan, MoreThan } from 'typeorm';
 import { GLOBAL_VENOM_FEED_ID } from '../constants';
 import { feedRepository, postRepository, reactionRepository } from '../database';
 import { FeedEntity } from '../entities/Feed.entity';
 import { FeedPostReactionEntity } from '../entities/FeedPostReaction.entity';
 import { admins, updateAdmins } from '../local-db/admins';
 import { feeds } from '../local-db/feeds';
-import { posts, postsWithReactions, updatePosts, updatePostsWithReactions } from '../local-db/posts';
+import { postsWithReactions, updatePostsWithReactions } from '../local-db/posts';
 import { validatePostsStatus } from '../middlewares/validate';
 import { PostWithReactions, Reactions, postToDTO, postWithReactionToDTO } from '../types';
 import { brackets, isEmoji } from '../utils';
@@ -108,9 +107,8 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 	async function updateCache(feed: FeedEntity) {
 		const start = Date.now();
 		await updateAdmins(feed);
-		await updatePosts(feed.feedId);
 		await updatePostsWithReactions(feed.feedId);
-		if (Date.now() - start > 2000) {
+		if (Date.now() - start > 4000) {
 			console.log(`Cache for ${feed.feedId} updated in ${Date.now() - start}ms`);
 		}
 	}
@@ -118,7 +116,7 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 	async function updateAllCaches() {
 		const start = Date.now();
 		await Promise.all(feeds.map(async feed => updateCache(feed)));
-		if (Date.now() - start > 1000) {
+		if (Date.now() - start > 5000) {
 			console.log(`All caches updated in ${Date.now() - start}ms`);
 		}
 	}
@@ -132,64 +130,6 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 			asyncTimer(updateAllCaches, 5 * 1000);
 		})();
 	}
-
-	router.get('/posts', async (req, res) => {
-		try {
-			const { beforeTimestamp: beforeTimestampRaw, adminMode: adminModeRaw, feedId: feedIdRaw } = req.query;
-			const feedId = feedIdRaw ? String(feedIdRaw) : GLOBAL_VENOM_FEED_ID;
-			if (feeds.find(f => f.feedId === feedId) === undefined) {
-				const newFeed = new FeedEntity();
-				newFeed.feedId = feedId;
-				let title = 'New unnamed feed';
-				if (feedId.startsWith('3000000000000000000000000000000000000000000000000000001')) {
-					title = 'New Dexify feed';
-				}
-				newFeed.title = title;
-				newFeed.description = title;
-				newFeed.isHidden = true;
-				newFeed.parentFeedId = null;
-				newFeed.logoUrl = null;
-				newFeed.evmFeedId = constructGenericEvmFeedId(newFeed.feedId as Uint256);
-				newFeed.tvmFeedId = constructGenericTvmFeedId(newFeed.feedId as Uint256, 1);
-				await feedRepository.save(newFeed);
-				feeds.push(newFeed);
-			}
-			const beforeTimestamp = isNaN(Number(beforeTimestampRaw)) ? 0 : Number(beforeTimestampRaw);
-			const adminMode = adminModeRaw === 'true';
-			const idx = !adminMode
-				? beforeTimestamp === 0
-					? 0
-					: posts[feedId]
-					? posts[feedId].findIndex(p => p.createTimestamp < beforeTimestamp)
-					: -1
-				: -1;
-			if (idx !== -1 && !adminMode && idx <= posts[feedId].length - 10) {
-				return res.json(posts[feedId].slice(idx, idx + 10));
-			}
-			const _posts = await postRepository.find({
-				where: adminMode
-					? beforeTimestamp === 0
-						? { isAutobanned: false, banned: false, isPredefined: false, isApproved: false, feedId }
-						: {
-								isAutobanned: false,
-								banned: false,
-								feedId,
-								isPredefined: false,
-								isApproved: false,
-								createTimestamp: MoreThan(beforeTimestamp),
-						  }
-					: beforeTimestamp === 0
-					? { banned: false, feedId }
-					: { createTimestamp: LessThan(beforeTimestamp), banned: false, feedId },
-				order: { createTimestamp: adminMode ? 'ASC' : 'DESC' },
-				take: adminMode ? 10 : 10,
-			});
-			return res.json(_posts.map(post => postToDTO(post, admins[feedId])));
-		} catch (e) {
-			console.error(e);
-			res.sendStatus(500);
-		}
-	});
 
 	router.get('/v2/posts', async (req, res) => {
 		try {
