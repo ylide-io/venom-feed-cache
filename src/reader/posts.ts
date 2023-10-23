@@ -544,7 +544,7 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 			if (took > 500) {
 				console.log(`/posts/statistic took: ${took}ms`);
 				if (took > 3000) {
-					// sendTGAlert(`BlockchainFeed: /posts/statistic took more than 3s: ${took}ms`);
+					sendTGAlert(`BlockchainFeed: /posts/statistic took more than 3s: ${took}ms`);
 				}
 			}
 			res.status(200).json(result);
