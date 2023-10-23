@@ -126,7 +126,7 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 				console.log(`Building cache for ${feed.feedId} (${feed.title})`);
 				await updateCache(feed);
 			}
-			asyncTimer(updateAllCaches, 5 * 60 * 1000);
+			asyncTimer(updateAllCaches, 5 * 1000);
 		})();
 	}
 
