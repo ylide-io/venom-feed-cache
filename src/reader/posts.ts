@@ -114,10 +114,9 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 	}
 
 	async function updateAllCaches() {
-		const start = Date.now();
-		await Promise.all(feeds.map(async feed => updateCache(feed)));
-		if (Date.now() - start > 5000) {
-			console.log(`All caches updated in ${Date.now() - start}ms`);
+		for (const feed of feeds) {
+			console.log(`Updating cache for ${feed.feedId} (${feed.title})`);
+			await updateCache(feed);
 		}
 	}
 
