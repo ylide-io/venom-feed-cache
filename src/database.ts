@@ -56,6 +56,7 @@ export const AppDataSource = new DataSource({
 	subscribers: [],
 	migrations: [],
 	synchronize: process.env.POSTGRES_SYNC === 'true',
+	cache: true,
 });
 
 export const postRepository = AppDataSource.getRepository(VenomFeedPostEntity);

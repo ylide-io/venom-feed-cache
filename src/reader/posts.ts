@@ -537,13 +537,14 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 				.select(['post."feedId"', 'count(*) "totalMessages"', 'count(distinct(post.sender)) "uniqSenders"'])
 				.where(`"feedId" in (:...feedIds)`, { feedIds })
 				.groupBy('post."feedId"')
+				.cache(5 * 60 * 1000)
 				.getRawMany();
 			const end = Date.now();
 			const took = end - start;
 			if (took > 500) {
 				console.log(`/posts/statistic took: ${took}ms`);
 				if (took > 3000) {
-					sendTGAlert(`BlockchainFeed: /posts/statistic took more than 3s: ${took}ms`);
+					// sendTGAlert(`BlockchainFeed: /posts/statistic took more than 3s: ${took}ms`);
 				}
 			}
 			res.status(200).json(result);
