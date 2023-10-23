@@ -115,9 +115,9 @@ export const createPostsRouter: () => Promise<{ router: express.Router }> = asyn
 
 	async function updateAllCaches() {
 		for (const feed of feeds) {
-			console.log(`Updating cache for ${feed.feedId} (${feed.title})`);
 			await updateCache(feed);
 		}
+		console.log('All caches updated');
 	}
 
 	if (process.env.NODE_ENV !== 'development') {
