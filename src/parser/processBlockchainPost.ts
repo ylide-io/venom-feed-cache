@@ -1,9 +1,10 @@
-import { IMessage, IMessageContent, IMessageCorruptedContent, YMF } from '@ylide/sdk';
+import { IMessage, IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
 import Redis from 'ioredis';
 import uniq from 'lodash.uniq';
 import { DECIMALS } from '../constants';
-import { postRepository, userRepository } from '../database';
+import { noContentRepository, postRepository } from '../database';
 import { HashtagEntity } from '../entities/Hashtag.entity';
+import { NoContentPostEntity } from '../entities/NoContentPost';
 import { VenomFeedPostEntity } from '../entities/VenomFeedPost.entity';
 import { bannedAddresses, feeds, getFeedComissions, predefinedTexts } from '../local-db';
 import { extractHashtags } from '../utils';
@@ -50,6 +51,37 @@ export const processPostContent = (post: VenomFeedPostEntity, content: IMessageC
 				post.isAutobanned = true;
 				post.banned = true;
 			}
+		}
+	}
+};
+
+export const broadCastReply = async (redis: Redis, post: VenomFeedPostEntity) => {
+	if (!post.banned) {
+		try {
+			// <reply-to id="yA05OswBQayIBMkQfGKDxa51udwKxdQoymRUpuBpKp5mmg==" />yes, cool
+			if (post.contentText && post.contentText.includes('<reply-to id="')) {
+				const msgId = post.contentText.split('<reply-to id="')[1].split('"')[0];
+				if (msgId) {
+					const replyToPost = await postRepository.findOne({ where: { id: msgId } });
+					if (replyToPost && !replyToPost.banned) {
+						void redis
+							.publish(
+								'ylide-broadcast-replies',
+								JSON.stringify({
+									data: {
+										originalPost: replyToPost,
+										replyPost: post,
+									},
+								}),
+							)
+							.catch(err => {
+								console.log('Failed to publish reply to redis: ', err);
+							});
+					}
+				}
+			}
+		} catch (err) {
+			console.log(err);
 		}
 	}
 };
@@ -133,34 +165,7 @@ export const processBlockchainPost = async (
 	} else {
 		processPostContent(post, content);
 	}
-	if (!post.banned) {
-		try {
-			// <reply-to id="yA05OswBQayIBMkQfGKDxa51udwKxdQoymRUpuBpKp5mmg==" />yes, cool
-			if (post.contentText && post.contentText.includes('<reply-to id="')) {
-				const msgId = post.contentText.split('<reply-to id="')[1].split('"')[0];
-				if (msgId) {
-					const replyToPost = await postRepository.findOne({ where: { id: msgId } });
-					if (replyToPost) {
-						void redis
-							.publish(
-								'ylide-broadcast-replies',
-								JSON.stringify({
-									data: {
-										originalPost: replyToPost,
-										replyPost: post,
-									},
-								}),
-							)
-							.catch(err => {
-								console.log('Failed to publish reply to redis: ', err);
-							});
-					}
-				}
-			}
-		} catch (err) {
-			console.log(err);
-		}
-	}
+	await broadCastReply(redis, post);
 	try {
 		const hashtagsEntities = uniq(extractHashtags(post.contentText)).map(h => {
 			const e = new HashtagEntity();
@@ -177,6 +182,15 @@ export const processBlockchainPost = async (
 		);
 		post.hashtags = [];
 		await postRepository.save(post);
+	}
+	if (post.contentText === 'no-content-available') {
+		try {
+			const noContent = new NoContentPostEntity();
+			noContent.post = post;
+			await noContentRepository.save(noContent);
+		} catch (error) {
+			console.log(`Failed to save no-content post #${post.id}: `, error);
+		}
 	}
 
 	return { post, feed };

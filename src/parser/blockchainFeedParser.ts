@@ -5,6 +5,7 @@ import { postRepository } from '../database';
 import { retry } from '../utils/retry';
 import { sendTGAlert } from '../utils/telegram';
 import { processBlockchainPost } from './processBlockchainPost';
+import { restoreNoContent } from './restoreNoContent';
 
 const processPost = async (indexerHub: IndexerHub, redis: Redis, msg: IMessage) => {
 	const start = Date.now();
@@ -152,6 +153,7 @@ export const startBlockchainFeedParser = async (redis: Redis) => {
 
 	asyncTimer(updateAllFeeds, 2 * 1000);
 	asyncTimer(recoverPostFeedIds, 60 * 1000);
+	asyncTimer(restoreNoContent(redis, indexerHub), 60 * 1000);
 
 	console.log('Blockchain feed parser started');
 };

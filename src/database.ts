@@ -12,6 +12,7 @@ import { HashtagEntity } from './entities/Hashtag.entity';
 import { PredefinedTextEntity } from './entities/PredefinedText.entity';
 import { UserEntity } from './entities/User.entity';
 import { VenomFeedPostEntity } from './entities/VenomFeedPost.entity';
+import { NoContentPostEntity } from './entities/NoContentPost';
 
 export const createMessageBus = async (env: DotenvParseOutput) => {
 	const redis = new Redis({
@@ -52,6 +53,7 @@ export const AppDataSource = new DataSource({
 		FeedPostReactionEntity,
 		HashtagEntity,
 		UserEntity,
+		NoContentPostEntity,
 	],
 	subscribers: [],
 	migrations: [],
@@ -60,6 +62,7 @@ export const AppDataSource = new DataSource({
 });
 
 export const postRepository = AppDataSource.getRepository(VenomFeedPostEntity);
+export const noContentRepository = AppDataSource.getRepository(NoContentPostEntity);
 export const predefinedTextRepository = AppDataSource.getRepository(PredefinedTextEntity);
 export const bannedAddressRepository = AppDataSource.getRepository(BannedAddressEntity);
 export const adminRepository = AppDataSource.getRepository(AdminEntity);
