@@ -157,18 +157,16 @@ export const startPusher = async (redis: Redis, sendNotification: typeof SendNot
 								take: limit,
 							});
 							console.log(`Sending global push: ${offset} - ${offset + limit} / ${totalCount}`);
-							await Promise.all(
-								users.map(u =>
-									sendPush(u, {
-										type: 'INCOMING_MAIL',
-										body: {
-											senderAddress: body.senderAddress,
-											recipientAddress: u.address,
-											msgId: body.msgId,
-										},
-									}),
-								),
-							);
+							for (const user of users) {
+								await sendPush(user, {
+									type: 'INCOMING_MAIL',
+									body: {
+										senderAddress: body.senderAddress,
+										recipientAddress: user.address,
+										msgId: body.msgId,
+									},
+								});
+							}
 							if (offset + limit >= totalCount) {
 								break;
 							}
